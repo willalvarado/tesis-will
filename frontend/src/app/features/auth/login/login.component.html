@@ -1,0 +1,107 @@
+<div class="login-container">
+  <div class="login-card">
+    <!-- Logo y Header -->
+    <div class="logo-section">
+      <div class="logo-circle">
+        <span>💎</span>
+      </div>
+      <h1>Iniciar Sesión</h1>
+      <p class="subtitle">Bienvenido de nuevo a la plataforma</p>
+    </div>
+    
+    <!-- Formulario -->
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">✉️</i>
+          <input 
+            type="email" 
+            id="email" 
+            formControlName="email" 
+            placeholder="Correo electrónico" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="email?.invalid && (email?.dirty || email?.touched)" class="error-message">
+          <div *ngIf="email?.errors?.['required']">El correo es obligatorio.</div>
+          <div *ngIf="email?.errors?.['email']">Ingrese un correo válido.</div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🔒</i>
+          <input 
+            type="password" 
+            id="password" 
+            formControlName="password" 
+            placeholder="Contraseña" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="password?.invalid && (password?.dirty || password?.touched)" class="error-message">
+          <div *ngIf="password?.errors?.['required']">La contraseña es obligatoria.</div>
+        </div>
+      </div>
+      
+      <!-- Botón Login -->
+      <div class="form-actions">
+        <button 
+          type="submit" 
+          [disabled]="loginForm.invalid" 
+          class="btn-login"
+        >
+          <span class="btn-text">Iniciar Sesión</span>
+          <span class="btn-shimmer"></span>
+        </button>
+      </div>
+      
+      <!-- Error Message -->
+      <div *ngIf="loginError" class="error-banner">
+        <i class="error-icon">⚠️</i>
+        {{ loginError }}
+      </div>
+    </form>
+    
+    <!-- Acciones Alternativas -->
+    <div class="alternative-actions">
+      <button class="btn-back" [routerLink]="['/']">
+        ← Volver al inicio
+      </button>
+
+      <div class="divider">
+        <span>¿No tienes cuenta?</span>
+      </div>
+
+      <div class="register-section">
+        <h3>Únete a nuestra plataforma</h3>
+        <div class="register-buttons">
+          <button class="btn-register btn-cliente" [routerLink]="['/registro-cliente']">
+            <div class="btn-icon">👤</div>
+            <div class="btn-content">
+              <span class="btn-title">Soy Cliente</span>
+              <span class="btn-desc">Busco servicios de TI</span>
+            </div>
+          </button>
+          
+          <button class="btn-register btn-vendedor" [routerLink]="['/registro-vendedor']">
+            <div class="btn-icon">💼</div>
+            <div class="btn-content">
+              <span class="btn-title">Soy Vendedor</span>
+              <span class="btn-desc">Ofrezco servicios de TI</span>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Elementos de fondo decorativos -->
+  <div class="bg-decoration">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+  </div>
+</div>

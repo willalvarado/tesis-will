@@ -1,0 +1,180 @@
+<div class="inicio-container">
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="hero-content">
+      <div class="logo-main">
+        <div class="logo-circle">
+          <span>🌟</span>
+        </div>
+        <h1 class="main-title">Bienvenido a Gestor Virtual</h1>
+        <p class="main-subtitle">Una nueva forma de conectar clientes con proveedores de servicios y productos de TI</p>
+      </div>
+      
+      <!-- Features Preview -->
+      <div class="features-preview">
+        <div class="feature-item">
+          <div class="feature-icon">🚀</div>
+          <span>Conexión Rápida</span>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💼</div>
+          <span>Servicios TI</span>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">⭐</div>
+          <span>Calidad Garantizada</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards Section -->
+  <div class="cards-section">
+    <div class="cards-container">
+      <!-- Cliente Card -->
+      <div class="option-card cliente-card" data-aos="fade-up" data-aos-delay="100">
+        <div class="card-header">
+          <div class="card-icon cliente-icon">
+            <span>👤</span>
+          </div>
+          <div class="card-badge">Para ti</div>
+        </div>
+        
+        <div class="card-content">
+          <h2>¿Eres Cliente?</h2>
+          <p>Regístrate como cliente y encuentra los servicios de TI que necesites fácilmente. Conecta con profesionales especializados.</p>
+          
+          <div class="card-features">
+            <div class="feature">✓ Encuentra especialistas TI</div>
+            <div class="feature">✓ Compara propuestas</div>
+            <div class="feature">✓ Gestión de proyectos</div>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn btn-cliente" [routerLink]="['/registro-cliente']">
+            <span class="btn-text">Registrarse como Cliente</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Vendedor Card -->
+      <div class="option-card vendedor-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="card-header">
+          <div class="card-icon vendedor-icon">
+            <span>💼</span>
+          </div>
+          <div class="card-badge vendedor-badge">Para profesionales</div>
+        </div>
+        
+        <div class="card-content">
+          <h2>¿Eres Vendedor?</h2>
+          <p>Regístrate como vendedor y ofrece tus servicios de TI a nuevos clientes potenciales. Haz crecer tu negocio.</p>
+          
+          <div class="card-features">
+            <div class="feature">✓ Amplía tu cartera de clientes</div>
+            <div class="feature">✓ Gestiona tus servicios</div>
+            <div class="feature">✓ Aumenta tus ingresos</div>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn btn-vendedor" [routerLink]="['/registro-vendedor']">
+            <span class="btn-text">Registrarse como Vendedor</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Login Card -->
+      <div class="option-card login-card" data-aos="fade-up" data-aos-delay="300">
+        <div class="card-header">
+          <div class="card-icon login-icon">
+            <span>🔑</span>
+          </div>
+          <div class="card-badge login-badge">Ya registrado</div>
+        </div>
+        
+        <div class="card-content">
+          <h2>¿Ya tienes cuenta?</h2>
+          <p>Accede a tu cuenta para comenzar a disfrutar de nuestro gestor virtual y gestionar tus proyectos.</p>
+          
+          <div class="card-features">
+            <div class="feature">✓ Acceso inmediato</div>
+            <div class="feature">✓ Dashboard personalizado</div>
+            <div class="feature">✓ Gestión completa</div>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn btn-login" [routerLink]="['/login']">
+            <span class="btn-text">Iniciar Sesión</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image Carousel Section -->
+  <div class="carousel-section">
+    <div class="carousel-container">
+      <h3 class="carousel-title">Nuestros Servicios en Acción</h3>
+      <div class="carousel-wrapper">
+        <div class="carousel-track" [style.transform]="'translateX(' + (-currentSlide * 100) + '%)'">
+          <div class="carousel-slide" *ngFor="let image of carouselImages; let i = index">
+            <div class="slide-content">
+              <img [src]="image.url" [alt]="image.title" class="slide-image">
+              <div class="slide-overlay">
+                <h4>{{ image.title }}</h4>
+                <p>{{ image.description }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Carousel Indicators -->
+        <div class="carousel-indicators">
+          <button 
+            *ngFor="let image of carouselImages; let i = index"
+            class="indicator"
+            [class.active]="currentSlide === i"
+            (click)="goToSlide(i)"
+          ></button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <div class="stats-section">
+    <div class="stats-container">
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="100">
+        <div class="stat-number">{{ animatedStats.clients }}</div>
+        <div class="stat-label">Clientes Satisfechos</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="200">
+        <div class="stat-number">{{ animatedStats.vendors }}</div>
+        <div class="stat-label">Vendedores Activos</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="300">
+        <div class="stat-number">{{ animatedStats.projects }}</div>
+        <div class="stat-label">Proyectos Completados</div>
+      </div>
+      <div class="stat-item" data-aos="fade-up" data-aos-delay="400">
+        <div class="stat-number">{{ animatedStats.rating }}</div>
+        <div class="stat-label">Calificación Promedio</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Elements -->
+  <div class="floating-elements">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+    <div class="floating-shape shape-5"></div>
+  </div>
+</div>

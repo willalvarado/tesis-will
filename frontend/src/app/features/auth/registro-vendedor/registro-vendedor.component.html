@@ -1,0 +1,152 @@
+<div class="registro-container">
+  <div class="registro-card">
+    <!-- Logo y Header -->
+    <div class="logo-section">
+      <div class="logo-circle">
+        <span>💼</span>
+      </div>
+      <h1>Registro de Vendedor</h1>
+      <p class="subtitle">Crea tu cuenta para ofrecer servicios de TI</p>
+    </div>
+    
+    <!-- Formulario -->
+    <form [formGroup]="formularioRegistro" (ngSubmit)="enviarRegistro()" class="registro-form">
+      <!-- Nombre de Empresa -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🏢</i>
+          <input 
+            type="text" 
+            formControlName="nombreEmpresa" 
+            placeholder="Nombre de empresa o personal" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">✉️</i>
+          <input 
+            type="email" 
+            formControlName="correo" 
+            placeholder="Correo electrónico" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+      </div>
+
+      <!-- Especialidades Section -->
+      <div class="form-group especialidades-section">
+        <label class="field-label">Especialidades</label>
+        <button 
+          type="button" 
+          class="btn-especialidades" 
+          [routerLink]="['/registro-especialidades']"
+        >
+          <div class="btn-icon-wrapper">
+            <i class="btn-icon">⚙️</i>
+            <span class="btn-text">Seleccionar especialidades</span>
+            <i class="btn-arrow">→</i>
+          </div>
+        </button>
+        
+        <!-- Lista de especialidades seleccionadas -->
+        <div *ngIf="especialidades?.value?.length" class="especialidades-selected">
+          <div class="selected-header">
+            <i class="check-icon">✅</i>
+            <span class="selected-title">Especialidades seleccionadas:</span>
+          </div>
+          <ul class="selected-list">
+            <li *ngFor="let esp of especialidades?.value" class="selected-item">
+              <i class="item-icon">🔧</i>
+              {{ esp }}
+            </li>
+          </ul>
+        </div>
+      </div>
+      
+      <!-- Contraseña -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🔒</i>
+          <input 
+            type="password" 
+            formControlName="contrasena" 
+            placeholder="Contraseña" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+      </div>
+      
+      <!-- Confirmar Contraseña -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🔐</i>
+          <input 
+            type="password" 
+            formControlName="confirmarContrasena" 
+            placeholder="Confirmar contraseña" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+      </div>
+      
+      <!-- Botón Registro -->
+      <div class="form-actions">
+        <button 
+          type="submit" 
+          [disabled]="formularioRegistro.invalid" 
+          class="btn-registro"
+        >
+          <span class="btn-text">Crear mi cuenta de vendedor</span>
+          <span class="btn-shimmer"></span>
+        </button>
+      </div>
+      
+      <!-- Mensajes de Error y Éxito -->
+      <div *ngIf="errorRegistro" class="error-banner">
+        <i class="error-icon">⚠️</i>
+        {{ errorRegistro }}
+      </div>
+      
+      <div *ngIf="registroExitoso" class="success-banner">
+        <i class="success-icon">✅</i>
+        {{ registroExitoso }}
+      </div>
+    </form>
+    
+    <!-- Acciones Alternativas -->
+    <div class="alternative-actions">
+      <button class="btn-back" [routerLink]="['/']">
+        ← Volver al inicio
+      </button>
+
+      <div class="divider">
+        <span>¿Ya tienes cuenta?</span>
+      </div>
+
+      <div class="login-section">
+        <button class="btn-login-redirect" [routerLink]="['/login']">
+          <div class="btn-icon">🚀</div>
+          <div class="btn-content">
+            <span class="btn-title">Iniciar Sesión</span>
+            <span class="btn-desc">Accede a tu cuenta existente</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Elementos de fondo decorativos -->
+  <div class="bg-decoration">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+  </div>
+</div>

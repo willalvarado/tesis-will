@@ -1,0 +1,205 @@
+<div class="container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">💼 Portal Vendedor</span>
+    </div>
+    
+    <nav class="menu">
+      <a href="#" class="nav-link" [class.active]="activeSection === 'dashboard'" (click)="setActiveSection('dashboard')">
+        <span>📊</span> Dashboard
+      </a>
+      <a href="#" class="nav-link" [class.active]="activeSection === 'requerimientos'" (click)="setActiveSection('requerimientos')">
+        <span>📝</span> Requerimientos 
+        <span class="badge" *ngIf="requerimientosDisponibles.length > 0">{{ requerimientosDisponibles.length }}</span>
+      </a>
+      <a href="#" class="nav-link" [class.active]="activeSection === 'proyectos'" (click)="setActiveSection('proyectos')">
+        <span>💼</span> Mis Proyectos 
+        <span class="badge" *ngIf="misRequerimientos.length > 0">{{ misRequerimientos.length }}</span>
+      </a>
+      
+      <a href="#/vendedor/mi-perfil" class="nav-link">
+  <span>👤</span> Mi Perfil
+</a>
+      <a href="#" class="nav-link" [class.active]="activeSection === 'historial'" (click)="setActiveSection('historial')">
+        <span>🗒️</span> Historial
+      </a>
+    </nav>
+    
+    <button class="logout" (click)="cerrarSesion()">
+      📋 Cerrar Sesión
+    </button>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    <header class="header">
+      <h1>Bienvenido, {{ vendedor?.nombre || 'Vendedor' }}</h1>
+      <button class="notification" (click)="toggleNotificaciones()">🔔</button>
+    </header>
+
+    <!-- Dashboard Section -->
+    <section *ngIf="activeSection === 'dashboard'" class="section active">
+      <!-- Cards -->
+      <div class="cards">
+        <div class="card">
+          <div class="icon">📈</div>
+          <div class="info">
+            <p>Proyectos Activos</p>
+            <h2>{{ contarProyectosActivos() }}</h2>
+            <span>En proceso</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon">✅</div>
+          <div class="info">
+            <p>Completados</p>
+            <h2>{{ contarProyectosCompletados() }}</h2>
+            <span>Este mes</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon">🎯</div>
+          <div class="info">
+            <p>Disponibles</p>
+            <h2>{{ requerimientosDisponibles.length }}</h2>
+            <span>Para tu especialidad</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="icon">⭐</div>
+          <div class="info">
+            <p>Calificación</p>
+            <h2>4.8</h2>
+            <span>Promedio</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actividad Reciente -->
+      <div class="actividad">
+        <h3>Actividad Reciente</h3>
+        <div class="actividad-item" *ngFor="let actividad of actividadesRecientes">
+          <div class="icon">{{ actividad.icon }}</div>
+          <p>{{ actividad.descripcion }}</p>
+          <span>{{ actividad.tiempo }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Requerimientos Section -->
+    <section *ngIf="activeSection === 'requerimientos'" class="section">
+      <div class="section-header">
+        <h2>📝 Requerimientos Disponibles</h2>
+        <button class="btn-refresh" (click)="cargarRequerimientosDisponibles()">
+          🔄 Actualizar
+        </button>
+      </div>
+
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando requerimientos...</p>
+      </div>
+
+      <div *ngIf="!loading && requerimientosDisponibles.length === 0" class="empty-state">
+        <span class="empty-icon">📭</span>
+        <h3>No hay requerimientos disponibles</h3>
+        <p>Vuelve más tarde o ajusta tus filtros</p>
+      </div>
+
+      <div class="requerimientos-list" *ngIf="!loading && requerimientosDisponibles.length > 0">
+        <div *ngFor="let req of requerimientosDisponibles" class="requerimiento-card">
+          <div class="card-badge">{{ req.especialidad }}</div>
+          <h3>{{ req.titulo }}</h3>
+          <p class="req-descripcion">{{ req.mensaje }}</p>
+          <div class="card-meta">
+            <span>📅 {{ formatDate(req.fecha_creacion) }}</span>
+            <span>👤 Cliente #{{ req.cliente_id }}</span>
+          </div>
+          <button class="btn-primary" (click)="tomarRequerimiento(req.id)">
+            Tomar Proyecto
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mis Proyectos Section -->
+    <section *ngIf="activeSection === 'proyectos'" class="section">
+      <div class="section-header">
+        <h2>💼 Mis Proyectos</h2>
+      </div>
+
+      <div class="proyectos-list" *ngIf="misRequerimientos.length > 0">
+        <div *ngFor="let proyecto of misRequerimientos" class="proyecto-card">
+          <div class="proyecto-header">
+            <h3>{{ proyecto.titulo }}</h3>
+            <span class="estado-badge" [ngClass]="getEstadoBadgeClass(proyecto.estado)">
+              {{ proyecto.estado }}
+            </span>
+          </div>
+          <p>{{ proyecto.mensaje }}</p>
+          <div class="proyecto-actions">
+            <select [value]="proyecto.estado" (change)="cambiarEstado(proyecto.id, $event)" class="estado-select">
+              <option value="asignado">Asignado</option>
+              <option value="en_proceso">En Proceso</option>
+              <option value="completado">Completado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+            <button class="btn-secondary">Ver Detalles</button>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="misRequerimientos.length === 0" class="empty-state">
+        <span class="empty-icon">💼</span>
+        <h3>No tienes proyectos asignados</h3>
+        <p>Ve a la sección de requerimientos para tomar nuevos proyectos</p>
+      </div>
+    </section>
+
+    <!-- Mi Perfil Section -->
+    <section *ngIf="activeSection === 'perfil'" class="section">
+      <div class="perfil-header">
+        <div class="perfil-avatar">
+          <span>{{ obtenerIniciales() }}</span>
+        </div>
+        <div class="perfil-info">
+          <h2>{{ vendedor?.nombre }}</h2>
+          <p>{{ vendedor?.correo }}</p>
+          <span class="tipo-badge">Vendedor Profesional</span>
+        </div>
+      </div>
+
+      <div class="perfil-content">
+        <div class="info-group">
+          <h3>Mi Especialidad</h3>
+          <span class="especialidad-tag">{{ vendedorEspecialidad }}</span>
+        </div>
+
+        <div class="info-group">
+          <h3>Estadísticas</h3>
+          <div class="stats-list">
+            <div class="stat-item">
+              <span>Proyectos Completados:</span>
+              <strong>{{ contarProyectosCompletados() }}</strong>
+            </div>
+            <div class="stat-item">
+              <span>Tasa de Éxito:</span>
+              <strong>95%</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Historial Section -->
+    <section *ngIf="activeSection === 'historial'" class="section">
+      <div class="section-content">
+        <h2>🗒️ Historial de Proyectos</h2>
+        <p>Aquí aparecerá el historial completo de tus proyectos.</p>
+        <div class="loading" style="margin-top: 20px;"></div>
+        <p style="margin-top: 10px;">Función en desarrollo...</p>
+      </div>
+    </section>
+  </main>
+</div>
