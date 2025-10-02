@@ -25,26 +25,32 @@ export class ServicioAuth {
     }
   }
 
-  iniciarSesion(correo: string, contrasena: string): Observable<any> {
+ iniciarSesion(correo: string, contrasena: string): Observable<any> {
+  console.log('🔍 Intentando login con:', correo);
+  
   // Intento primero en clientes
   return this.http.post<any>('http://localhost:8000/usuarios/login', { correo, contrasena }).pipe(
     tap(response => {
-      // Caso cliente
+      console.log('✅ Respuesta cliente:', response);
       const userData = response.usuario || response;
       userData.tipo = 'cliente';
       this.setUsuarioActual(userData);
     })
   ).pipe(
     // Si falla, probamos en vendedores
-    catchError(() => {
-      return this.http.post<any>('http://localhost:8000/vendedores/login-vendedor', { correo, contrasena }).pipe(
-        tap(response => {
-          const userData = response.usuario || response;
-          userData.tipo = 'vendedor';
-          this.setUsuarioActual(userData);
-        })
-      );
+   catchError(() => {
+  console.log('❌ Login cliente falló, probando vendedor...');
+  return this.http.post<any>('http://localhost:8000/vendedores/login-vendedor', { correo, contrasena }).pipe(
+    tap(response => {
+      console.log('✅ Respuesta vendedor completa:', response);
+      const userData = response.vendedor;
+      console.log('📋 Datos extraídos del vendedor:', userData);
+      userData.tipo = 'vendedor';
+      console.log('🔄 Llamando setUsuarioActual...');
+      this.setUsuarioActual(userData);
     })
+  );
+})
   );
 }
 
@@ -58,11 +64,15 @@ export class ServicioAuth {
   }
 
   setUsuarioActual(usuario: Usuario | null): void {
-    this.usuarioActualSubject.next(usuario);
-    if (usuario) {
-      localStorage.setItem('usuario', JSON.stringify(usuario));
-    }
+  console.log('💾 Guardando usuario en localStorage:', usuario);
+  this.usuarioActualSubject.next(usuario);
+  if (usuario) {
+    localStorage.setItem('usuario', JSON.stringify(usuario));
+    console.log('✅ Usuario guardado. Verificación:', localStorage.getItem('usuario'));
+  } else {
+    console.log('❌ Usuario es null, no se guarda nada');
   }
+}
 
   obtenerUsuarioActual(): Usuario | null {
     return this.usuarioActualSubject.value;

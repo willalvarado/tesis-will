@@ -1,34 +1,78 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../../environments/environment';
 import { Observable } from 'rxjs';
 
-export type EstadoReq = 'Enviado' | 'En proceso' | 'En espera' | 'Asignado';
+// Estados que coinciden EXACTAMENTE con el backend
+// Estados que coinciden EXACTAMENTE con el backend
+export type EstadoReq =
+  | 'pendiente'
+  | 'asignado'
+  | 'en_proceso'
+  | 'completado'
+  | 'cancelado'
+  | 'aceptado'
+  | 'Pendiente de revisión por vendedor especializado';
+
 
 export interface Requerimiento {
   id: number;
   cliente_id: number;
+  vendedor_id: number | null;
   titulo: string;
-  descripcion: string;
+  mensaje: string;
+  descripcion: string | null;
+  especialidad: string;
   estado: EstadoReq;
-  created_at?: string;
+  fecha_creacion: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class RequerimientosService {
-  private api = `${environment.apiUrl}/requerimientos`;
+  private api = 'http://localhost:8000/requerimientos';
 
   constructor(private http: HttpClient) {}
 
-  listar(clienteId: number): Observable<Requerimiento[]> {
-    return this.http.get<Requerimiento[]>(`${this.api}?cliente_id=${clienteId}`);
+  // Obtener requerimientos del cliente
+  obtenerRequerimientosCliente(clienteId: number): Observable<Requerimiento[]> {
+    return this.http.get<Requerimiento[]>(`${this.api}/cliente/${clienteId}`);
   }
 
-  crear(body: { cliente_id: number; titulo: string; descripcion: string }): Observable<Requerimiento> {
-    return this.http.post<Requerimiento>(this.api, body);
+  // Crear nuevo requerimiento
+  crearRequerimiento(clienteId: number, mensaje: string): Observable<Requerimiento> {
+    return this.http.post<Requerimiento>(`${this.api}/crear`, {
+      cliente_id: clienteId,
+      mensaje: mensaje
+    });
   }
 
-  cambiarEstado(id: number, estado: EstadoReq): Observable<Requerimiento> {
-    return this.http.patch<Requerimiento>(`${this.api}/${id}/estado`, { estado });
+  // Obtener requerimientos disponibles para vendedor
+  obtenerRequerimientosDisponibles(especialidad?: string): Observable<Requerimiento[]> {
+    const url = especialidad 
+      ? `${this.api}/vendedor/disponibles?especialidad=${especialidad}`
+      : `${this.api}/vendedor/disponibles`;
+    return this.http.get<Requerimiento[]>(url);
+  }
+
+  // Obtener requerimientos asignados a vendedor
+  obtenerRequerimientosVendedor(vendedorId: number): Observable<Requerimiento[]> {
+    return this.http.get<Requerimiento[]>(`${this.api}/vendedor/${vendedorId}`);
+  }
+
+  // Asignar requerimiento a vendedor
+  asignarRequerimiento(requerimientoId: number, vendedorId: number): Observable<Requerimiento> {
+    return this.http.put<Requerimiento>(
+      `${this.api}/${requerimientoId}/asignar?vendedor_id=${vendedorId}`,
+      {}
+    );
+  }
+
+  // Cambiar estado del requerimiento
+  cambiarEstado(requerimientoId: number, nuevoEstado: EstadoReq): Observable<Requerimiento> {
+    return this.http.put<Requerimiento>(
+      `${this.api}/${requerimientoId}/estado?nuevo_estado=${nuevoEstado}`,
+      {}
+    );
   }
 }

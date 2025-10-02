@@ -37,35 +37,29 @@ onSubmit() {
   const { email, password } = this.loginForm.value;
 
   this.authService.iniciarSesion(email, password).subscribe({
-    next: (res) => {
-      // Normalizamos la respuesta
-      const userData = res.usuario || res; 
+    next: () => {
+      // Suscribirse al observable del usuario actualizado
+      this.authService.usuarioActual$.subscribe(currentUser => {
+        if (!currentUser) return;
 
-      const tipoUsuario = userData.tipo?.toLowerCase();
-      console.log('✅ Tipo de usuario:', tipoUsuario);
+        console.log('✅ Usuario actual desde service (observable):', currentUser);
 
-      // AÑADIR ESTAS LÍNEAS para guardar en localStorage:
-      localStorage.setItem('userName', userData.nombre);
-      localStorage.setItem('userEmail', userData.correo);
+        const tipoUsuario = currentUser.tipo?.toLowerCase();
+        console.log('✅ Tipo de usuario final:', tipoUsuario);
 
-      this.authService.setUsuarioActual({
-        id: userData.id,
-        nombre: userData.nombre,
-        correo: userData.correo,
-        tipo: tipoUsuario
+        if (tipoUsuario === 'cliente') {
+          this.router.navigate(['/cliente/bienvenida']);
+        } else if (tipoUsuario === 'vendedor') {
+          this.router.navigate(['/vendedor/bienvenida']);
+        } else {
+          this.loginError = 'Tipo de usuario desconocido.';
+        }
       });
-
-      if (tipoUsuario === 'cliente') {
-        this.router.navigate(['/cliente/bienvenida']);
-      } else if (tipoUsuario === 'vendedor') {
-        this.router.navigate(['/vendedor/bienvenida']);
-      } else {
-        this.loginError = 'Tipo de usuario desconocido.';
-      }
     },
     error: () => {
       this.loginError = 'Credenciales incorrectas.';
     }
   });
 }
+
 }

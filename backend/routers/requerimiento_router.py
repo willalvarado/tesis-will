@@ -52,6 +52,13 @@ def crear_requerimiento(req: RequerimientoCreate, db: Session = Depends(get_db))
     db.refresh(nuevo_req)
     return nuevo_req
 
+@router.get("/cliente/{cliente_id}", response_model=List[RequerimientoResponse])
+def obtener_requerimientos_por_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    """Obtiene los requerimientos creados por un cliente específico"""
+    return db.query(Requerimiento).filter(
+        Requerimiento.cliente_id == cliente_id
+    ).order_by(Requerimiento.fecha_creacion.desc()).all()
+
 @router.get("/vendedor/disponibles", response_model=List[RequerimientoResponse])
 def obtener_requerimientos_disponibles(
     especialidad: str | None = None,
@@ -110,5 +117,3 @@ def cambiar_estado_requerimiento(
     db.commit()
     db.refresh(req)
     return req
-
-

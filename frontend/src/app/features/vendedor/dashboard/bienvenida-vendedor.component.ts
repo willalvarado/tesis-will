@@ -3,7 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router} from '@angular/router'; // ⭐ AGREGAR RouterLink aquí
 
 interface Requerimiento {
   id: number;
@@ -33,7 +33,12 @@ interface ActividadReciente {
 @Component({
   selector: 'app-bienvenida-vendedor',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule],
+  imports: [
+    CommonModule, 
+    HttpClientModule, 
+    FormsModule,
+      // ⭐ AGREGAR RouterLink aquí en imports
+  ],
   templateUrl: './bienvenida-vendedor.component.html',
   styleUrls: ['./bienvenida-vendedor.component.css']
 })
@@ -76,47 +81,58 @@ export class BienvenidaVendedorComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-  this.cargarDatosVendedor();
+    this.cargarDatosVendedor();
 
-  if (this.vendedor) {
-    this.cargarRequerimientosDisponibles();
-    this.cargarMisRequerimientos();
-  }
-}
-
- cargarDatosVendedor(): void {
-  const userData = localStorage.getItem('usuario');
-  if (userData) {
-    this.vendedor = JSON.parse(userData);
-    if (this.vendedor?.tipo !== 'vendedor') {
-      this.router.navigate(['/login']);
-    } else {
-      // 🔥 solo aquí cargo los requerimientos cuando ya tengo vendedor
+    if (this.vendedor) {
       this.cargarRequerimientosDisponibles();
       this.cargarMisRequerimientos();
     }
-  } else {
-    this.router.navigate(['/login']);
   }
-}
-  // NUEVO MÉTODO para cambiar secciones
-  
-setActiveSection(section: string): void {
-  console.log('Cambiando a sección:', section);
-  this.activeSection = section;
-  console.log('activeSection ahora es:', this.activeSection);
-  
-  // Cargar datos específicos según la sección
-  if (section === 'requerimientos') {
-    console.log('Cargando requerimientos');
-    this.cargarRequerimientosDisponibles();
-  } else if (section === 'proyectos') {
-    console.log('Cargando proyectos');
-    this.cargarMisRequerimientos();
-  } else {
-    console.log('No cargando datos para sección:', section);
+
+  cargarDatosVendedor(): void {
+    const userData = localStorage.getItem('usuario');
+    if (userData) {
+      this.vendedor = JSON.parse(userData);
+      if (this.vendedor?.tipo !== 'vendedor') {
+        this.router.navigate(['/login']);
+      } else {
+        // 🔥 solo aquí cargo los requerimientos cuando ya tengo vendedor
+        this.cargarRequerimientosDisponibles();
+        this.cargarMisRequerimientos();
+      }
+    } else {
+      this.router.navigate(['/login']);
+    }
   }
-}
+
+  // ⚡ MÉTODO MEJORADO para cambiar secciones Y navegar
+  setActiveSection(section: string): void {
+    console.log('Cambiando a sección:', section);
+    this.activeSection = section;
+    console.log('activeSection ahora es:', this.activeSection);
+    
+    // ⭐ NAVEGAR A LA RUTA CORRESPONDIENTE
+    switch(section) {
+      case 'requerimientos':
+        this.router.navigate(['/vendedor/requerimientos']);
+        break;
+      case 'proyectos':
+        this.router.navigate(['/vendedor/proyectos']);
+        break;
+      case 'perfil':
+        this.router.navigate(['/vendedor/mi-perfil']);
+        break;
+      case 'dashboard':
+      default:
+        this.router.navigate(['/vendedor/bienvenida']);
+        break;
+    }
+  }
+
+  // ⚡ MÉTODO ALTERNATIVO usando RouterLink directamente (recomendado)
+  navegarA(ruta: string): void {
+    this.router.navigate([ruta]);
+  }
 
   cargarRequerimientosDisponibles(): void {
     this.loading = true;

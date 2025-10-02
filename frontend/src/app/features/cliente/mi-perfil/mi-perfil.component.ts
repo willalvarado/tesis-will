@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators  } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ServicioAuth } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-mi-perfil',
@@ -103,7 +102,7 @@ import { Router } from '@angular/router';
             </div>
 
             <!-- Biografía -->
-            <div class="form-group">
+            <div class="form-group full-width">
               <label for="biografia">Biografía</label>
               <textarea 
                 id="biografia" 
@@ -173,14 +172,15 @@ import { Router } from '@angular/router';
     </div>
   `,
   styles: `
-  .badge-stars {
-  background: linear-gradient(135deg, #f8f6f4ff, #0a0a0aff);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
+    .badge-stars {
+      background: linear-gradient(135deg, #f8f6f4ff, #0a0a0aff);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
     .perfil-container {
       max-width: 800px;
       margin: 0 auto;
@@ -255,15 +255,6 @@ import { Router } from '@angular/router';
       font-size: 1.1rem;
     }
 
-    .badge {
-      background: linear-gradient(135deg, #fbbf24, #f59e0b);
-      color: white;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-    }
-
     /* Form Card */
     .form-card {
       background: white;
@@ -282,14 +273,18 @@ import { Router } from '@angular/router';
     }
 
     .perfil-form {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
 
     .form-group {
       display: flex;
       flex-direction: column;
+    }
+
+    .form-group.full-width {
+      grid-column: 1 / -1;
     }
 
     .form-group label {
@@ -343,6 +338,7 @@ import { Router } from '@angular/router';
       border-radius: 8px;
       border: 1px solid #c3e6cb;
       margin-top: 15px;
+      grid-column: 1 / -1;
     }
 
     /* Form Actions */
@@ -350,6 +346,7 @@ import { Router } from '@angular/router';
       display: flex;
       gap: 15px;
       margin-top: 25px;
+      grid-column: 1 / -1;
     }
 
     .btn {
@@ -479,6 +476,10 @@ import { Router } from '@angular/router';
       .header h1 {
         font-size: 2rem;
       }
+
+      .perfil-form {
+        grid-template-columns: 1fr;
+      }
     }
   `
 })
@@ -490,7 +491,8 @@ export class MiPerfilComponent implements OnInit {
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: ServicioAuth
   ) {
     this.perfilForm = this.fb.group({
       nombre: ['', Validators.required],
@@ -503,22 +505,36 @@ export class MiPerfilComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.cargarDatosUsuario();
+    this.cargarDatosCliente();
   }
 
-  cargarDatosUsuario(): void {
-  // Obtener datos reales del localStorage o del servicio de auth
-  const datosReales = {
-    nombre: localStorage.getItem('userName') || 'Usuario Demo',
-    correo: localStorage.getItem('userEmail') || 'cliente@empresa.com', // ← Cambiar aquí
-    telefono: localStorage.getItem('userPhone') || '',
-    direccion: localStorage.getItem('userAddress') || '',
-    ciudad: localStorage.getItem('userCity') || '',
-    biografia: localStorage.getItem('userBio') || ''
-  };
+  cargarDatosCliente(): void {
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario) return;
+    
+    const clienteId = JSON.parse(usuario).id;
 
-  this.perfilForm.patchValue(datosReales);
-}
+    this.http.get<any>(`http://localhost:8000/usuarios/perfil/${clienteId}`)
+      .subscribe({
+        next: (res) => {
+          console.log('📥 Datos del cliente desde backend:', res);
+
+          // Cargar datos del formulario
+          this.perfilForm.patchValue({
+            nombre: res.nombre || '',
+            correo: res.correo || '',
+            telefono: res.telefono || '',
+            direccion: res.direccion || '',
+            ciudad: res.ciudad || '',
+            biografia: res.biografia || ''
+          });
+        },
+        error: (err) => {
+          console.error('❌ Error al cargar datos del cliente:', err);
+          this.mensajeError = 'Error al cargar los datos del perfil';
+        }
+      });
+  }
 
   getInitials(): string {
     const nombre = this.perfilForm.get('nombre')?.value || 'Usuario';
@@ -536,24 +552,45 @@ export class MiPerfilComponent implements OnInit {
     this.mensajeExito = '';
     this.mensajeError = '';
 
-    // Simular llamada al backend
-    setTimeout(() => {
-      try {
-        // Aquí harías la llamada real al backend:
-        // this.http.put('/api/usuario/perfil', this.perfilForm.value).subscribe(...)
-        
-        localStorage.setItem('userName', this.perfilForm.get('nombre')?.value);
-        this.mensajeExito = 'Perfil actualizado correctamente';
-        this.guardando = false;
-      } catch (error) {
-        this.mensajeError = 'Error al guardar los cambios';
-        this.guardando = false;
-      }
-    }, 1500);
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario) {
+      this.mensajeError = 'Error: No se encontró información del usuario';
+      this.guardando = false;
+      return;
+    }
+    
+    const clienteId = JSON.parse(usuario).id;
+    const datosActualizados = this.perfilForm.value;
+
+    this.http.put(`http://localhost:8000/usuarios/perfil/${clienteId}`, datosActualizados)
+      .subscribe({
+        next: (response: any) => {
+          console.log('Perfil actualizado exitosamente:', response);
+          
+          // Actualizar el nombre en localStorage si cambió
+          if (datosActualizados.nombre) {
+            const usuarioActual = JSON.parse(usuario);
+            usuarioActual.nombre = datosActualizados.nombre;
+            localStorage.setItem('usuario', JSON.stringify(usuarioActual));
+          }
+          
+          this.mensajeExito = 'Perfil actualizado correctamente';
+          this.guardando = false;
+          
+          setTimeout(() => {
+            this.mensajeExito = '';
+          }, 3000);
+        },
+        error: (error) => {
+          console.error('Error actualizando perfil:', error);
+          this.mensajeError = 'Error al guardar los cambios. Por favor, intenta nuevamente.';
+          this.guardando = false;
+        }
+      });
   }
 
   cancelarCambios(): void {
-    this.cargarDatosUsuario();
+    this.cargarDatosCliente();
     this.mensajeExito = '';
     this.mensajeError = '';
   }

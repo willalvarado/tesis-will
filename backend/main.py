@@ -16,7 +16,7 @@ app = FastAPI(title="Gestor Virtual")
 # Permitir peticiones desde frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cambiar por URL del frontend si quieres
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,7 +31,6 @@ print("¡Listo! Tablas creadas.")
 app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
 app.include_router(vendedor_router, prefix="/vendedores", tags=["Vendedores"])
 app.include_router(requerimiento_router)
-
 app.include_router(chatbot_router, prefix="/chat", tags=["Chat"])
 
 # Ruta de prueba

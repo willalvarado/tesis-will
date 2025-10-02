@@ -1,0 +1,93 @@
+<div class="chat-container">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="assistant-info">
+      <div class="avatar">🤖</div>
+      <div class="info">
+        <h3>Asistente Virtual</h3>
+        <p>Describe tu requerimiento y te ayudo a conectarte con el vendedor perfecto</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Messages Area -->
+  <div class="chat-messages" #chatMessages>
+    <div class="message assistant-message">
+      <div class="avatar">🚀</div>
+      <div class="message-content">
+        <p><strong>¡Hola! Soy tu asistente virtual</strong></p>
+        <p>Puedes decirme cosas como:</p>
+        <div class="suggestions">
+          <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para mi negocio')">
+            📱 "Necesito una aplicación móvil para mi negocio"
+          </div>
+          <div class="suggestion" (click)="usarSugerencia('Quiero un sitio web con sistema de pagos')">
+            🌐 "Quiero un sitio web con sistema de pagos"
+          </div>
+          <div class="suggestion" (click)="usarSugerencia('Necesito un sistema de inventario')">
+            📊 "Necesito un sistema de inventario"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensaje del usuario si existe -->
+    <div class="message user-message" *ngIf="mensajeUsuario">
+      <div class="message-content">
+        <p>{{ mensajeUsuario }}</p>
+      </div>
+      <div class="avatar user-avatar">👤</div>
+    </div>
+
+    <!-- Respuesta del asistente después de enviar -->
+    <div class="message assistant-message" *ngIf="mensajeUsuario && !enviando">
+      <div class="avatar">🤖</div>
+      <div class="message-content">
+        <p><strong>¡Perfecto!</strong> He recibido tu requerimiento.</p>
+        <p>Estoy procesando tu solicitud y buscando vendedores especializados que coincidan con tus necesidades.</p>
+        <div class="processing-status" *ngIf="!mensajeExito && !mensajeError">
+          <div class="loader"></div>
+          <span>Procesando...</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mensajes de éxito/error -->
+    <div class="message assistant-message" *ngIf="mensajeExito">
+      <div class="avatar">✅</div>
+      <div class="message-content success">
+        <p><strong>{{ mensajeExito }}</strong></p>
+        <p>Te notificaremos cuando un vendedor acepte tu proyecto.</p>
+      </div>
+    </div>
+
+    <div class="message assistant-message" *ngIf="mensajeError">
+      <div class="avatar">❌</div>
+      <div class="message-content error">
+        <p><strong>{{ mensajeError }}</strong></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input-container">
+    <form [formGroup]="requerimientoForm" (ngSubmit)="crearRequerimiento()" class="chat-form">
+      <div class="input-group">
+        <textarea 
+          formControlName="mensaje"
+          placeholder="Escribe tu requerimiento aquí..."
+          (keydown)="onEnterPress($event)"
+          [disabled]="enviando"
+        ></textarea>
+        <button 
+          type="submit" 
+          [disabled]="requerimientoForm.invalid || enviando"
+          class="send-button"
+        >
+          <span *ngIf="!enviando">📤</span>
+          <span *ngIf="enviando" class="spinner">⏳</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

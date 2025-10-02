@@ -2,22 +2,20 @@
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <span class="logo">👤 Portal Cliente</span>
+      <span class="logo">🎯 Portal Cliente</span> 📊
     </div>
     
     <nav class="menu">
-      <a href="#" class="nav-link" [class.active]="activeSection === 'chat'" (click)="setActiveSection('chat')">
-        <span>💬</span> Chat Asistente
-        <span class="badge" *ngIf="mensajes.length > 0">{{ mensajes.length }}</span>
-      </a>
-      <a href="#" class="nav-link" [class.active]="activeSection === 'requerimientos'" (click)="setActiveSection('requerimientos')">
-        <span>📋</span> Mis Requerimientos
-        <span class="badge">3</span>
-      </a>
-      <a href="#" class="nav-link" [class.active]="activeSection === 'proyectos'" (click)="setActiveSection('proyectos')">
-        <span>📊</span> Estado Proyectos
-        <span class="badge">2</span>
-      </a>
+       <a href="#/cliente/chat-asistente" class="nav-link">
+  <span>💬</span> Mi Chat Asistente
+</a>
+      
+      <a href="#/cliente/requerimientos" class="nav-link">
+  <span>📝</span> Mis Requerimientos
+</a>
+      <a href="#/cliente/estado-proyectos" class="nav-link">
+  <span>👤</span> Estado Proyectos
+</a>
       <a href="#/cliente/mi-perfil" class="nav-link">
   <span>👤</span> Mi Perfil
 </a>

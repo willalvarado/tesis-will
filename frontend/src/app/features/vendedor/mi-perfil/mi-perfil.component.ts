@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators  } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ServicioAuth } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-mi-perfil-vendedor',
@@ -27,7 +26,17 @@ import { Router } from '@angular/router';
             <div class="basic-info">
               <h2>{{ perfilForm.get('nombre')?.value || 'Vendedor' }}</h2>
               <p class="email">{{ perfilForm.get('correo')?.value }}</p>
-              <p class="especialidad">{{ perfilForm.get('especialidad')?.value || 'Especialista' }}</p>
+              
+              <!-- Especialidades como chips NO EDITABLES -->
+              <div class="especialidades-section">
+                <label>Especialidades:</label>
+                <div class="especialidades-chips">
+                  <span class="chip" *ngFor="let especialidad of especialidades">
+                    🔧 {{ especialidad }}
+                  </span>
+                </div>
+              </div>
+              
               <span class="badge-stars">⭐⭐⭐⭐⭐</span>
             </div>
           </div>
@@ -65,27 +74,6 @@ import { Router } from '@angular/router';
                 readonly
               >
               <small class="form-help">El correo no se puede modificar</small>
-            </div>
-
-            <!-- Especialidad -->
-            <div class="form-group">
-              <label for="especialidad">Especialidad</label>
-              <select 
-                id="especialidad" 
-                formControlName="especialidad" 
-                class="form-control"
-              >
-                <option value="">Selecciona tu especialidad</option>
-                <option value="Programación y Desarrollo">Programación y Desarrollo</option>
-                <option value="Diseño Gráfico">Diseño Gráfico</option>
-                <option value="Marketing Digital">Marketing Digital</option>
-                <option value="Consultoría Empresarial">Consultoría Empresarial</option>
-                <option value="Traducción">Traducción</option>
-                <option value="Redacción y Copywriting">Redacción y Copywriting</option>
-                <option value="Fotografía y Video">Fotografía y Video</option>
-                <option value="Contabilidad">Contabilidad</option>
-                <option value="Otros">Otros</option>
-              </select>
             </div>
 
             <!-- Teléfono -->
@@ -141,21 +129,8 @@ import { Router } from '@angular/router';
               </select>
             </div>
 
-            <!-- Precio por Hora -->
-            <div class="form-group">
-              <label for="precioHora">Precio por Hora (USD)</label>
-              <input 
-                type="number" 
-                id="precioHora" 
-                formControlName="precioHora" 
-                class="form-control"
-                placeholder="Ej: 25"
-                min="5"
-              >
-            </div>
-
             <!-- Biografía Profesional -->
-            <div class="form-group">
+            <div class="form-group full-width">
               <label for="biografia">Biografía Profesional</label>
               <textarea 
                 id="biografia" 
@@ -167,7 +142,7 @@ import { Router } from '@angular/router';
             </div>
 
             <!-- Habilidades -->
-            <div class="form-group">
+            <div class="form-group full-width">
               <label for="habilidades">Habilidades Principales</label>
               <input 
                 type="text" 
@@ -177,22 +152,6 @@ import { Router } from '@angular/router';
                 placeholder="Ej: JavaScript, React, Node.js, MongoDB"
               >
               <small class="form-help">Separa las habilidades con comas</small>
-            </div>
-
-            <!-- Disponibilidad -->
-            <div class="form-group">
-              <label for="disponibilidad">Disponibilidad</label>
-              <select 
-                id="disponibilidad" 
-                formControlName="disponibilidad" 
-                class="form-control"
-              >
-                <option value="">Selecciona tu disponibilidad</option>
-                <option value="tiempo-completo">Tiempo Completo</option>
-                <option value="medio-tiempo">Medio Tiempo</option>
-                <option value="freelance">Freelance</option>
-                <option value="fines-de-semana">Solo Fines de Semana</option>
-              </select>
             </div>
 
             <!-- Botones -->
@@ -258,11 +217,35 @@ import { Router } from '@angular/router';
     </div>
   `,
   styles: `
-    .especialidad {
-      color: #667eea;
+    .especialidades-section {
+      margin: 15px 0;
+    }
+
+    .especialidades-section label {
+      color: #666;
+      font-size: 0.9rem;
       font-weight: 600;
-      margin: 5px 0;
-      font-size: 1rem;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .especialidades-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .chip {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
     }
 
     .badge-stars {
@@ -285,7 +268,7 @@ import { Router } from '@angular/router';
       text-align: center;
       margin-bottom: 40px;
       padding: 40px 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       color: white;
       border-radius: 15px;
     }
@@ -318,14 +301,14 @@ import { Router } from '@angular/router';
 
     .avatar-section {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 25px;
     }
 
     .avatar {
       width: 80px;
       height: 80px;
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -361,7 +344,7 @@ import { Router } from '@angular/router';
       color: #333;
       font-size: 1.5rem;
       margin-bottom: 25px;
-      border-bottom: 2px solid #667eea;
+      border-bottom: 2px solid #28a745;
       padding-bottom: 10px;
     }
 
@@ -376,9 +359,7 @@ import { Router } from '@angular/router';
       flex-direction: column;
     }
 
-    .form-group:nth-child(9),
-    .form-group:nth-child(10),
-    .form-group:nth-child(11) {
+    .form-group.full-width {
       grid-column: 1 / -1;
     }
 
@@ -400,8 +381,8 @@ import { Router } from '@angular/router';
 
     .form-control:focus {
       outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      border-color: #28a745;
+      box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
     }
 
     .form-control.readonly {
@@ -456,13 +437,13 @@ import { Router } from '@angular/router';
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       color: white;
     }
 
     .btn-primary:hover:not(:disabled) {
       transform: translateY(-2px);
-      box-shadow: 0 8px 25px rgba(79, 172, 254, 0.4);
+      box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
     }
 
     .btn-primary:disabled {
@@ -494,7 +475,7 @@ import { Router } from '@angular/router';
       color: #333;
       font-size: 1.5rem;
       margin-bottom: 20px;
-      border-bottom: 2px solid #764ba2;
+      border-bottom: 2px solid #20c997;
       padding-bottom: 10px;
     }
 
@@ -515,7 +496,7 @@ import { Router } from '@angular/router';
     .stat-number {
       font-size: 2rem;
       font-weight: 700;
-      color: #667eea;
+      color: #28a745;
       margin-bottom: 5px;
     }
 
@@ -532,7 +513,7 @@ import { Router } from '@angular/router';
     }
 
     .btn-back {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
       color: white;
       border: none;
       padding: 15px 30px;
@@ -545,7 +526,7 @@ import { Router } from '@angular/router';
 
     .btn-back:hover {
       transform: translateY(-3px);
-      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
     }
 
     /* Responsive */
@@ -557,12 +538,6 @@ import { Router } from '@angular/router';
 
       .perfil-form {
         grid-template-columns: 1fr;
-      }
-
-      .form-group:nth-child(9),
-      .form-group:nth-child(10),
-      .form-group:nth-child(11) {
-        grid-column: 1;
       }
 
       .avatar-section {
@@ -582,6 +557,10 @@ import { Router } from '@angular/router';
       .header h1 {
         font-size: 2rem;
       }
+
+      .especialidades-chips {
+        justify-content: center;
+      }
     }
 
     @media (max-width: 480px) {
@@ -596,23 +575,22 @@ export class MiPerfilComponent implements OnInit {
   guardando = false;
   mensajeExito = '';
   mensajeError = '';
+  especialidades: string[] = [];
 
   constructor(
     private fb: FormBuilder,
-    private http: HttpClient
+    private http: HttpClient,
+    private authService: ServicioAuth
   ) {
     this.perfilForm = this.fb.group({
       nombre: ['', Validators.required],
       correo: ['', [Validators.required, Validators.email]],
-      especialidad: ['', Validators.required],
       telefono: [''],
       direccion: [''],
       ciudad: [''],
       experiencia: [''],
-      precioHora: ['', [Validators.min(5)]],
       biografia: [''],
-      habilidades: [''],
-      disponibilidad: ['']
+      habilidades: ['']
     });
   }
 
@@ -621,22 +599,42 @@ export class MiPerfilComponent implements OnInit {
   }
 
   cargarDatosVendedor(): void {
-    // Obtener datos reales del localStorage o del servicio de auth
-    const datosReales = {
-      nombre: localStorage.getItem('vendorName') || 'Vendedor Demo',
-      correo: localStorage.getItem('vendorEmail') || 'vendedor@empresa.com',
-      especialidad: localStorage.getItem('vendorEspecialidad') || 'Programación y Desarrollo',
-      telefono: localStorage.getItem('vendorPhone') || '',
-      direccion: localStorage.getItem('vendorAddress') || '',
-      ciudad: localStorage.getItem('vendorCity') || '',
-      experiencia: localStorage.getItem('vendorExperiencia') || '',
-      precioHora: localStorage.getItem('vendorPrecioHora') || '',
-      biografia: localStorage.getItem('vendorBio') || '',
-      habilidades: localStorage.getItem('vendorHabilidades') || '',
-      disponibilidad: localStorage.getItem('vendorDisponibilidad') || ''
-    };
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario) return;
+    
+    const vendedorId = JSON.parse(usuario).id;
 
-    this.perfilForm.patchValue(datosReales);
+    this.http.get<any>(`http://localhost:8000/vendedores/${vendedorId}`)
+      .subscribe({
+        next: (res) => {
+          console.log('📥 Datos del vendedor desde backend:', res);
+
+          // Cargar especialidades
+          if (res.especialidades && Array.isArray(res.especialidades)) {
+            this.especialidades = res.especialidades;
+          } else if (res.especialidades) {
+            this.especialidades = [res.especialidades];
+          } else {
+            this.especialidades = ['Sin especialidades'];
+          }
+
+          // Cargar datos del formulario
+          this.perfilForm.patchValue({
+            nombre: res.nombre || '',
+            correo: res.correo || '',
+            telefono: res.telefono || '',
+            direccion: res.direccion || '',
+            ciudad: res.ciudad || '',
+            experiencia: res.experiencia || '',
+            biografia: res.biografia || '',
+            habilidades: res.habilidades || ''
+          });
+        },
+        error: (err) => {
+          console.error('❌ Error al cargar datos del vendedor:', err);
+          this.mensajeError = 'Error al cargar los datos del perfil';
+        }
+      });
   }
 
   getInitials(): string {
@@ -655,35 +653,41 @@ export class MiPerfilComponent implements OnInit {
     this.mensajeExito = '';
     this.mensajeError = '';
 
-    // Simular llamada al backend
-    setTimeout(() => {
-      try {
-        // Aquí harías la llamada real al backend:
-        // this.http.put('/api/vendedor/perfil', this.perfilForm.value).subscribe(...)
-        
-        // Guardar solo los campos editables en localStorage
-        const formData = this.perfilForm.value;
-        const editableFields = ['telefono', 'direccion', 'ciudad', 'experiencia', 'precioHora', 'biografia', 'habilidades', 'disponibilidad'];
-        
-        editableFields.forEach(field => {
-          localStorage.setItem(field, formData[field] || '');
-        });
-        
-        // También actualizar el nombre en el usuario si cambió
-        const userData = localStorage.getItem('usuario');
-        if (userData) {
-          const usuario = JSON.parse(userData);
-          usuario.nombre = formData.nombre;
-          localStorage.setItem('usuario', JSON.stringify(usuario));
+    const usuario = localStorage.getItem('usuario');
+    if (!usuario) {
+      this.mensajeError = 'Error: No se encontró información del usuario';
+      this.guardando = false;
+      return;
+    }
+    
+    const vendedorId = JSON.parse(usuario).id;
+    const datosActualizados = this.perfilForm.value;
+
+    this.http.put(`http://localhost:8000/vendedores/${vendedorId}`, datosActualizados)
+      .subscribe({
+        next: (response: any) => {
+          console.log('Perfil actualizado exitosamente:', response);
+          
+          // Actualizar el nombre en localStorage si cambió
+          if (datosActualizados.nombre) {
+            const usuarioActual = JSON.parse(usuario);
+            usuarioActual.nombre = datosActualizados.nombre;
+            localStorage.setItem('usuario', JSON.stringify(usuarioActual));
+          }
+          
+          this.mensajeExito = 'Perfil de vendedor actualizado correctamente';
+          this.guardando = false;
+          
+          setTimeout(() => {
+            this.mensajeExito = '';
+          }, 3000);
+        },
+        error: (error) => {
+          console.error('Error actualizando perfil:', error);
+          this.mensajeError = 'Error al guardar los cambios. Por favor, intenta nuevamente.';
+          this.guardando = false;
         }
-        
-        this.mensajeExito = 'Perfil de vendedor actualizado correctamente';
-        this.guardando = false;
-      } catch (error) {
-        this.mensajeError = 'Error al guardar los cambios';
-        this.guardando = false;
-      }
-    }, 1500);
+      });
   }
 
   cancelarCambios(): void {

@@ -7,16 +7,14 @@
     
     <nav class="menu">
       <a href="#" class="nav-link" [class.active]="activeSection === 'dashboard'" (click)="setActiveSection('dashboard')">
-        <span>📊</span> Dashboard
+        <span>🎯</span> Dashboard
       </a>
-      <a href="#" class="nav-link" [class.active]="activeSection === 'requerimientos'" (click)="setActiveSection('requerimientos')">
-        <span>📝</span> Requerimientos 
-        <span class="badge" *ngIf="requerimientosDisponibles.length > 0">{{ requerimientosDisponibles.length }}</span>
-      </a>
-      <a href="#" class="nav-link" [class.active]="activeSection === 'proyectos'" (click)="setActiveSection('proyectos')">
-        <span>💼</span> Mis Proyectos 
-        <span class="badge" *ngIf="misRequerimientos.length > 0">{{ misRequerimientos.length }}</span>
-      </a>
+      <a href="#/vendedor/requerimientos" class="nav-link">
+  <span>📝</span> Mis Requerimientos
+</a>
+      <a href="#/vendedor/mis-proyectos" class="nav-link">
+  <span>📊</span> Mis Proyectos
+</a>
       
       <a href="#/vendedor/mi-perfil" class="nav-link">
   <span>👤</span> Mi Perfil
