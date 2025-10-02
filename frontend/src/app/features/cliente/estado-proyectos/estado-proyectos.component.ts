@@ -3,28 +3,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
+import { ProyectosService, Proyecto } from '../../../core/services/proyectos.service';
 
 export interface Archivo {
   nombre: string;
   fechaSubida: Date;
   tamaño?: string;
-}
-
-export interface Proyecto {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  cliente: string;
-  vendedor: { id: number; nombre: string; email: string; avatar?: string; };
-  estado: 'asignado' | 'en_proceso' | 'pausado' | 'completado' | 'cancelado';
-  fechaInicio: Date;
-  fechaEstimada: Date;
-  fechaCompletado?: Date;
-  presupuesto: number;
-  pagado: number;
-  archivos: Archivo[];
-  progreso: number;
-  ultimaActividad: Date;
 }
 
 export interface Mensaje {
@@ -44,8 +28,8 @@ export interface Mensaje {
   styleUrls: ['./estado-proyectos.component.css']
 })
 export class EstadoProyectosComponent implements OnInit, OnDestroy {
-  proyectos: Proyecto[] = [];
-  proyectoSeleccionado: Proyecto | null = null;
+  proyectos: any[] = [];
+  proyectoSeleccionado: any | null = null;
   mensajes: Mensaje[] = [];
   nuevoMensaje: string = '';
   mostrarChat: boolean = false;
@@ -54,7 +38,10 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
   
   private actualizacionSubscription?: Subscription;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private proyectosService: ProyectosService
+  ) {}
 
   ngOnInit(): void {
     this.cargarProyectos();
@@ -70,63 +57,57 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
   cargarProyectos(): void {
     this.cargando = true;
     
-    setTimeout(() => {
-      this.proyectos = [
-        {
-          id: 1,
-          nombre: "E-commerce Boutique Fashion",
-          descripcion: "Desarrollo de tienda online para ropa femenina con sistema de pagos integrado",
-          cliente: "María González",
-          vendedor: { id: 101, nombre: "Carlos Rodríguez", email: "carlos@dev.com", avatar: "👨‍💻" },
-          estado: 'en_proceso',
-          fechaInicio: new Date('2024-09-01'),
-          fechaEstimada: new Date('2024-10-15'),
-          presupuesto: 2500,
-          pagado: 1000,
-          archivos: [
-            { nombre: 'wireframes.pdf', fechaSubida: new Date('2024-09-05T10:30:00') },
-            { nombre: 'propuesta.docx', fechaSubida: new Date('2024-09-03T14:15:00') },
-            { nombre: 'diseños_v1.fig', fechaSubida: new Date('2024-09-15T16:45:00') }
-          ],
-          progreso: 65,
-          ultimaActividad: new Date('2024-09-20')
-        },
-        {
-          id: 2,
-          nombre: "App Móvil Delivery",
-          descripcion: "Aplicación móvil para delivery de comida con GPS y pagos móviles",
-          cliente: "María González",
-          vendedor: { id: 102, nombre: "Ana Martínez", email: "ana@dev.com", avatar: "👩‍💻" },
-          estado: 'pausado',
-          fechaInicio: new Date('2024-09-10'),
-          fechaEstimada: new Date('2024-11-20'),
-          presupuesto: 4000,
-          pagado: 800,
-          archivos: [
-            { nombre: 'mockups.fig', fechaSubida: new Date('2024-09-12T09:45:00') },
-            { nombre: 'requerimientos.pdf', fechaSubida: new Date('2024-09-11T16:20:00') }
-          ],
-          progreso: 25,
-          ultimaActividad: new Date('2024-09-18')
-        }
-      ];
+    // Obtener el cliente_id del usuario logueado
+    const clienteId = this.obtenerClienteId();
+    
+    if (!clienteId) {
+      console.error('No se encontró el ID del cliente');
       this.cargando = false;
-    }, 1000);
+      return;
+    }
+
+    // Llamar al servicio real
+    this.proyectosService.obtenerProyectosCliente(clienteId).subscribe({
+      next: (proyectos) => {
+        // Mapear los proyectos y agregar información adicional del vendedor
+        this.proyectos = proyectos.map(proyecto => ({
+          ...proyecto,
+          fechaInicio: new Date(proyecto.fecha_inicio),
+          fechaEstimada: proyecto.fecha_estimada ? new Date(proyecto.fecha_estimada) : null,
+          fechaCompletado: proyecto.fecha_completado ? new Date(proyecto.fecha_completado) : null,
+          ultimaActividad: new Date(proyecto.updated_at),
+          archivos: proyecto.archivos || [],
+          vendedor: proyecto.vendedor || {
+            id: proyecto.vendedor_id,
+            nombre: 'Vendedor', // Temporal, se puede mejorar con otro endpoint
+            email: '',
+            avatar: '👨‍💻'
+          }
+        }));
+        this.cargando = false;
+      },
+      error: (error) => {
+        console.error('Error al cargar proyectos:', error);
+        this.cargando = false;
+      }
+    });
   }
 
-  seleccionarProyecto(proyecto: Proyecto): void {
+  seleccionarProyecto(proyecto: any): void {
     this.proyectoSeleccionado = proyecto;
     this.cargarMensajes(proyecto.id);
     this.mostrarChat = true;
   }
 
   cargarMensajes(proyectoId: number): void {
+    // TODO: Implementar servicio de mensajes del chat
+    // Por ahora usamos mensajes de ejemplo
     this.mensajes = [
       { 
         id: 1, 
         proyectoId, 
         remitente: 'vendedor', 
-        contenido: '¡Hola María! He comenzado con el desarrollo de tu proyecto. Te mantendré informada del progreso.', 
+        contenido: '¡Hola! He comenzado con el desarrollo de tu proyecto. Te mantendré informado del progreso.', 
         fecha: new Date('2024-09-15T10:30:00'), 
         leido: true 
       },
@@ -137,14 +118,6 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
         contenido: 'Perfecto, ¿podrías enviarme los avances cuando tengas algo para mostrar?', 
         fecha: new Date('2024-09-15T14:15:00'), 
         leido: true 
-      },
-      { 
-        id: 3, 
-        proyectoId, 
-        remitente: 'vendedor', 
-        contenido: 'Por supuesto. Ya tengo el 65% completado. Te comparto el wireframe actualizado en los archivos.', 
-        fecha: new Date('2024-09-20T09:45:00'), 
-        leido: false 
       }
     ];
   }
@@ -153,6 +126,8 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     if (!this.nuevoMensaje.trim() || !this.proyectoSeleccionado) return;
     
     this.enviandoMensaje = true;
+    
+    // TODO: Implementar servicio de mensajes del chat
     const mensaje: Mensaje = {
       id: Date.now(), 
       proyectoId: this.proyectoSeleccionado.id, 
@@ -186,9 +161,20 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
   }
 
   private iniciarActualizacionAutomatica(): void {
+    // Actualizar cada 30 segundos
     this.actualizacionSubscription = interval(30000).subscribe(() => {
       this.cargarProyectos();
     });
+  }
+
+  private obtenerClienteId(): number | null {
+    // Obtener del localStorage o del servicio de autenticación
+    const usuario = localStorage.getItem('usuario');
+    if (usuario) {
+      const usuarioObj = JSON.parse(usuario);
+      return usuarioObj.id;
+    }
+    return null;
   }
 
   obtenerColorEstado(estado: string): string {
@@ -240,6 +226,7 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
 
   descargarArchivo(nombreArchivo: string): void {
     console.log('Cliente descargando archivo:', nombreArchivo);
+    // TODO: Implementar descarga real de archivos
     alert(`Descargando: ${nombreArchivo}`);
   }
 
@@ -257,22 +244,5 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
       mp3: '🎵', wav: '🎵'
     };
     return iconos[extension || ''] || '📄';
-  }
-
-  obtenerEstadoProyecto(estado: string): string {
-    switch(estado) {
-      case 'asignado':
-        return 'Tu proyecto ha sido asignado y pronto comenzará el desarrollo';
-      case 'en_proceso':
-        return 'Tu proyecto está en desarrollo activo';
-      case 'pausado':
-        return 'El desarrollo está temporalmente pausado';
-      case 'completado':
-        return '¡Tu proyecto ha sido completado exitosamente!';
-      case 'cancelado':
-        return 'Este proyecto ha sido cancelado';
-      default:
-        return 'Estado desconocido';
-    }
   }
 }

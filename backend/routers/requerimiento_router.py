@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from modelos.requerimiento_model import Requerimiento, EstadoRequerimiento, EspecialidadEnum
+from modelos.proyecto_modelo import Proyecto, EstadoProyecto  # NUEVO IMPORT
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -80,26 +81,53 @@ def obtener_requerimientos_por_vendedor(vendedor_id: int, db: Session = Depends(
         Requerimiento.vendedor_id == vendedor_id
     ).order_by(Requerimiento.fecha_creacion.desc()).all()
 
-from fastapi import Query
-
 @router.put("/{requerimiento_id}/asignar")
 def asignar_requerimiento(
     requerimiento_id: int,
     vendedor_id: int = Query(...),
     db: Session = Depends(get_db)
 ):
-    """Asigna un requerimiento a un vendedor"""
+    """
+    Asigna un requerimiento a un vendedor y crea automáticamente un proyecto.
+    Este endpoint ahora crea el proyecto en la tabla proyectos.
+    """
+    # Buscar el requerimiento
     req = db.query(Requerimiento).filter(Requerimiento.id == requerimiento_id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Requerimiento no encontrado")
     if req.vendedor_id:
         raise HTTPException(status_code=400, detail="Requerimiento ya asignado")
 
+    # Asignar vendedor y cambiar estado
     req.vendedor_id = vendedor_id
     req.estado = EstadoRequerimiento.ASIGNADO
+    
+    # === NUEVO: Crear proyecto automáticamente ===
+    nuevo_proyecto = Proyecto(
+        requerimiento_id=req.id,
+        cliente_id=req.cliente_id,
+        vendedor_id=vendedor_id,
+        titulo=req.titulo,
+        descripcion=req.descripcion or req.mensaje,
+        especialidad=req.especialidad.value,  # Convertir enum a string
+        estado=EstadoProyecto.ASIGNADO,
+        progreso=0,
+        presupuesto=0.0,
+        pagado=0.0,
+        fecha_inicio=datetime.utcnow(),
+        fecha_estimada=None  # El vendedor lo puede actualizar después
+    )
+    
+    db.add(nuevo_proyecto)
     db.commit()
     db.refresh(req)
-    return req
+    db.refresh(nuevo_proyecto)
+    
+    return {
+        "message": "Requerimiento asignado y proyecto creado exitosamente",
+        "requerimiento": req,
+        "proyecto_id": nuevo_proyecto.id
+    }
 
 
 @router.put("/{requerimiento_id}/estado")

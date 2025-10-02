@@ -6,6 +6,7 @@ from database import Base, engine
 
 # Routers
 from routers.requerimiento_router import router as requerimiento_router
+from routers.proyecto_router import router as proyecto_router  # NUEVO
 from Usuarios.usuario_router import usuario_router
 from Vendedores.vendedor_router import vendedor_router
 from routers.chatbot_router import router as chatbot_router
@@ -16,7 +17,7 @@ app = FastAPI(title="Gestor Virtual")
 # Permitir peticiones desde frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Cambiar por URL del frontend si quieres
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -31,6 +32,7 @@ print("¡Listo! Tablas creadas.")
 app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
 app.include_router(vendedor_router, prefix="/vendedores", tags=["Vendedores"])
 app.include_router(requerimiento_router)
+app.include_router(proyecto_router)  # NUEVO - Router de proyectos
 app.include_router(chatbot_router, prefix="/chat", tags=["Chat"])
 
 # Ruta de prueba
