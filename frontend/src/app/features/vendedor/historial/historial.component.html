@@ -1,0 +1,180 @@
+<div class="historial-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>📊 Historial de Proyectos</h1>
+      <p>Proyectos completados y cancelados</p>
+    </div>
+    <div class="header-buttons">
+      <button class="btn-nav" routerLink="/vendedor/mis-proyectos">
+        📂 Mis Proyectos
+      </button>
+      <button class="btn-nav" routerLink="/vendedor/bienvenida">
+        🏠 Dashboard
+      </button>
+      <button class="btn-refresh" (click)="cargarHistorial()" [disabled]="cargando">
+        🔄 {{ cargando ? 'Actualizando...' : 'Actualizar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Estadísticas -->
+  <div class="estadisticas-grid">
+    <div class="estadistica-card ganado">
+      <div class="estadistica-icon">💰</div>
+      <div class="estadistica-info">
+        <span class="estadistica-label">Total Ganado</span>
+        <span class="estadistica-valor">${{ totalGanado.toFixed(2) }}</span>
+      </div>
+    </div>
+
+    <div class="estadistica-card completados">
+      <div class="estadistica-icon">✅</div>
+      <div class="estadistica-info">
+        <span class="estadistica-label">Proyectos Completados</span>
+        <span class="estadistica-valor">{{ proyectosCompletados }}</span>
+      </div>
+    </div>
+
+    <div class="estadistica-card pendientes">
+      <div class="estadistica-icon">⏳</div>
+      <div class="estadistica-info">
+        <span class="estadistica-label">Pagos Pendientes</span>
+        <span class="estadistica-valor">${{ pagosPendientes.toFixed(2) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="filtros-container">
+    <div class="filtros-titulo">
+      <h3>🔍 Filtros</h3>
+      <button class="btn-limpiar" (click)="limpiarFiltros()">
+        Limpiar filtros
+      </button>
+    </div>
+
+    <div class="filtros-grid">
+      <div class="filtro-item">
+        <label>Estado del Proyecto</label>
+        <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" class="filtro-select">
+          <option value="todos">Todos</option>
+          <option value="completado">Completado</option>
+          <option value="cancelado">Cancelado</option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label>Estado de Pago</label>
+        <select [(ngModel)]="filtroPago" (change)="aplicarFiltros()" class="filtro-select">
+          <option value="todos">Todos</option>
+          <option value="pagado">Pagado</option>
+          <option value="pendiente">Pendiente</option>
+        </select>
+      </div>
+
+      <div class="filtro-item">
+        <label>Cliente</label>
+        <input 
+          type="text" 
+          [(ngModel)]="filtroCliente" 
+          (input)="aplicarFiltros()"
+          placeholder="Buscar por nombre..."
+          class="filtro-input"
+        >
+      </div>
+
+      <div class="filtro-item">
+        <label>Fecha de Finalización</label>
+        <input 
+          type="date" 
+          [(ngModel)]="filtroFecha" 
+          (change)="aplicarFiltros()"
+          class="filtro-input"
+        >
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="cargando">
+    <div class="loader"></div>
+    <p>Cargando historial...</p>
+  </div>
+
+  <!-- Lista de Proyectos -->
+  <div class="proyectos-lista" *ngIf="!cargando">
+    <div class="lista-header">
+      <h3>Proyectos ({{ proyectosFiltrados.length }})</h3>
+    </div>
+
+    <div class="proyecto-item" *ngFor="let proyecto of proyectosFiltrados">
+      <div class="proyecto-main">
+        <div class="proyecto-icon">
+          <span *ngIf="proyecto.estado === 'completado'">✅</span>
+          <span *ngIf="proyecto.estado === 'cancelado'">❌</span>
+        </div>
+
+        <div class="proyecto-info">
+          <h4>{{ proyecto.titulo }}</h4>
+          <p class="proyecto-descripcion">{{ proyecto.descripcion }}</p>
+          
+          <div class="proyecto-detalles">
+            <span class="detalle-item">
+              <strong>👤 Cliente:</strong> {{ proyecto.cliente?.nombre || 'Cliente ' + proyecto.cliente_id }}
+            </span>
+            <span class="detalle-item">
+              <strong>📅 Finalizado:</strong> {{ formatearFecha(proyecto.fecha_completado || proyecto.updated_at) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="proyecto-estado">
+          <span class="badge-estado" [style.background-color]="obtenerColorEstado(proyecto.estado)">
+            {{ obtenerEtiquetaEstado(proyecto.estado) }}
+          </span>
+        </div>
+      </div>
+
+      <div class="proyecto-footer">
+        <div class="proyecto-pago">
+          <div class="pago-item">
+            <span class="pago-label">💰 Presupuesto:</span>
+            <span class="pago-valor">${{ proyecto.presupuesto }}</span>
+          </div>
+          <div class="pago-item">
+            <span class="pago-label">✅ Pagado:</span>
+            <span class="pago-valor pagado">${{ proyecto.pagado }}</span>
+          </div>
+          <div class="pago-item">
+            <span class="pago-label">⏳ Pendiente:</span>
+            <span class="pago-valor" [class.pendiente]="proyecto.pagoPendiente > 0" [class.completo]="proyecto.pagoPendiente === 0">
+              ${{ proyecto.pagoPendiente }}
+            </span>
+          </div>
+        </div>
+
+        <div class="proyecto-acciones">
+          <button class="btn-ver-chat" [routerLink]="['/vendedor/chat', proyecto.id]">
+            💬 Ver Chat
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="proyectosFiltrados.length === 0">
+      <div class="empty-icon">📋</div>
+      <h3>No hay proyectos en el historial</h3>
+      <p *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroCliente || filtroFecha">
+        Intenta ajustar los filtros para ver más resultados
+      </p>
+      <p *ngIf="filtroEstado === 'todos' && filtroPago === 'todos' && !filtroCliente && !filtroFecha">
+        Los proyectos completados o cancelados aparecerán aquí
+      </p>
+      <button class="btn-primary" (click)="limpiarFiltros()" *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroCliente || filtroFecha">
+        Limpiar Filtros
+      </button>
+    </div>
+  </div>
+</div>

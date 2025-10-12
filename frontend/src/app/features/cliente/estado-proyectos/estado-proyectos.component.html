@@ -30,13 +30,13 @@
       <!-- Project Header -->
       <div class="project-header">
         <div class="project-title">
-          <h3>{{ proyecto.nombre }}</h3>
+          <h3>{{ proyecto.titulo }}</h3>
           <span class="status-badge" [style.background-color]="obtenerColorEstado(proyecto.estado)">
             {{ obtenerEtiquetaEstado(proyecto.estado) }}
           </span>
         </div>
         <div class="project-actions">
-          <button class="btn-action btn-chat" (click)="seleccionarProyecto(proyecto)" title="Abrir Chat">💬</button>
+          <button class="btn-action btn-chat" [routerLink]="['/cliente/chat', proyecto.id]" title="Abrir Chat">💬</button>
         </div>
       </div>
 
@@ -47,7 +47,7 @@
         <div class="info-grid">
           <div class="info-item">
             <span class="label">👨‍💻 Vendedor:</span>
-            <span class="value">{{ proyecto.vendedor.nombre }}</span>
+            <span class="value">{{ proyecto.vendedor?.nombre || 'Vendedor ' + proyecto.vendedor_id }}</span>
           </div>
           <div class="info-item">
             <span class="label">📅 Inicio:</span>
@@ -99,34 +99,9 @@
           </div>
         </div>
 
-        <!-- Files Section - SOLO DESCARGA -->
-        <div class="files-section" *ngIf="proyecto.archivos.length > 0">
-          <div class="files-header">
-            <h4>📎 Archivos del Proyecto</h4>
-            <span class="files-count">{{ proyecto.archivos.length }} archivo(s)</span>
-          </div>
-          
-          <div class="files-list">
-            <div class="file-item readonly" *ngFor="let archivo of proyecto.archivos">
-              <div class="file-info">
-                <span class="file-icon">{{ obtenerIconoArchivo(archivo.nombre) }}</span>
-                <div class="file-details">
-                  <span class="file-name" (click)="descargarArchivo(archivo.nombre)">{{ archivo.nombre }}</span>
-                  <span class="file-date">Subido el {{ formatearFechaArchivo(archivo.fechaSubida) }}</span>
-                </div>
-              </div>
-              <button class="btn-download" (click)="descargarArchivo(archivo.nombre)" title="Descargar">📥</button>
-            </div>
-          </div>
-        </div>
+        
 
-        <!-- No Files State -->
-        <div class="no-files-section" *ngIf="proyecto.archivos.length === 0">
-          <div class="no-files-content">
-            <span class="no-files-icon">📂</span>
-            <p>El vendedor aún no ha subido archivos para este proyecto</p>
-          </div>
-        </div>
+        
 
         <!-- Project Timeline -->
         <div class="timeline-section">
@@ -156,15 +131,15 @@
     </div>
   </div>
 
-  <!-- Chat Modal -->
-  <div class="chat-overlay" *ngIf="mostrarChat" (click)="cerrarChat()">
-    <div class="chat-modal" (click)="$event.stopPropagation()">
+  <!-- Chat Modal - CORREGIDO -->
+  <div class="chat-overlay" *ngIf="mostrarChat" (click)="cerrarChatOverlay($event)">
+    <div class="chat-modal">
       <div class="chat-header">
         <div class="chat-title">
           <div class="vendor-avatar">{{ proyectoSeleccionado?.vendedor?.avatar }}</div>
           <div class="chat-info">
-            <h3>Chat con {{ proyectoSeleccionado?.vendedor?.nombre }}</h3>
-            <p>{{ proyectoSeleccionado?.nombre }}</p>
+            <h3>Chat con {{ proyectoSeleccionado?.vendedor?.nombre || 'Vendedor ' + proyectoSeleccionado?.vendedor_id }}</h3>
+            <p>{{ proyectoSeleccionado?.titulo }}</p>
           </div>
         </div>
         <button class="btn-close" (click)="cerrarChat()">✕</button>
@@ -182,9 +157,19 @@
         </div>
       </div>
 
-      <div class="chat-input">
+      <div class="chat-input" (click)="$event.stopPropagation()">
         <div class="input-wrapper">
-          <input type="text" [(ngModel)]="nuevoMensaje" (keypress)="$event.key === 'Enter' && enviarMensaje()" placeholder="Escribe tu mensaje..." [disabled]="enviandoMensaje" class="message-input">
+          <input 
+            #chatInput
+            type="text" 
+            [value]="nuevoMensaje"
+            (input)="nuevoMensaje = $any($event.target).value"
+            (keypress)="$event.key === 'Enter' && enviarMensaje()" 
+            placeholder="Escribe tu mensaje..." 
+            [disabled]="enviandoMensaje" 
+            class="message-input"
+            autocomplete="off"
+          >
           <button class="btn-send" (click)="enviarMensaje()" [disabled]="enviandoMensaje || !nuevoMensaje.trim()">
             {{ enviandoMensaje ? '⏳' : '📤' }}
           </button>

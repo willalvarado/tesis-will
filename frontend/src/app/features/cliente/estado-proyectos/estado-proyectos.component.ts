@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { Subscription, interval } from 'rxjs';
 import { ProyectosService, Proyecto } from '../../../core/services/proyectos.service';
+import { ChatService, Mensaje as MensajeChat } from '../../../core/services/chat.service';
 
 export interface Archivo {
   nombre: string;
@@ -11,7 +12,7 @@ export interface Archivo {
   tamaño?: string;
 }
 
-export interface Mensaje {
+export interface MensajeUI {
   id: number;
   proyectoId: number;
   remitente: 'cliente' | 'vendedor';
@@ -30,17 +31,19 @@ export interface Mensaje {
 export class EstadoProyectosComponent implements OnInit, OnDestroy {
   proyectos: any[] = [];
   proyectoSeleccionado: any | null = null;
-  mensajes: Mensaje[] = [];
+  mensajes: MensajeUI[] = [];
   nuevoMensaje: string = '';
   mostrarChat: boolean = false;
   cargando: boolean = false;
   enviandoMensaje: boolean = false;
   
   private actualizacionSubscription?: Subscription;
+  private mensajesSubscription?: Subscription;
 
   constructor(
     private router: Router,
-    private proyectosService: ProyectosService
+    private proyectosService: ProyectosService,
+    private chatService: ChatService
   ) {}
 
   ngOnInit(): void {
@@ -52,12 +55,15 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     if (this.actualizacionSubscription) {
       this.actualizacionSubscription.unsubscribe();
     }
+    if (this.mensajesSubscription) {
+      this.mensajesSubscription.unsubscribe();
+    }
+    this.chatService.desconectarChat();
   }
 
   cargarProyectos(): void {
     this.cargando = true;
     
-    // Obtener el cliente_id del usuario logueado
     const clienteId = this.obtenerClienteId();
     
     if (!clienteId) {
@@ -66,10 +72,8 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Llamar al servicio real
     this.proyectosService.obtenerProyectosCliente(clienteId).subscribe({
       next: (proyectos) => {
-        // Mapear los proyectos y agregar información adicional del vendedor
         this.proyectos = proyectos.map(proyecto => ({
           ...proyecto,
           fechaInicio: new Date(proyecto.fecha_inicio),
@@ -79,7 +83,7 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
           archivos: proyecto.archivos || [],
           vendedor: proyecto.vendedor || {
             id: proyecto.vendedor_id,
-            nombre: 'Vendedor', // Temporal, se puede mejorar con otro endpoint
+            nombre: 'Vendedor',
             email: '',
             avatar: '👨‍💻'
           }
@@ -95,60 +99,134 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
 
   seleccionarProyecto(proyecto: any): void {
     this.proyectoSeleccionado = proyecto;
+    
+    console.log('🔌 Conectando al chat del proyecto:', proyecto.id);
+    
+    // Conectar al WebSocket del proyecto
+    this.chatService.conectarChat(proyecto.id);
+    
+    // Cargar historial de mensajes
     this.cargarMensajes(proyecto.id);
+    
+    // Suscribirse a mensajes en tiempo real
+    if (this.mensajesSubscription) {
+      this.mensajesSubscription.unsubscribe();
+    }
+    
+    this.mensajesSubscription = this.chatService.mensajes$.subscribe(mensaje => {
+      console.log('📩 Nuevo mensaje recibido en tiempo real:', mensaje);
+      
+      // Solo agregar si no está ya en la lista (evitar duplicados)
+      const existe = this.mensajes.find(m => m.id === mensaje.id);
+      if (!existe) {
+        this.mensajes.push({
+          id: mensaje.id || Date.now(),
+          proyectoId: mensaje.proyecto_id,
+          remitente: mensaje.remitente_tipo,
+          contenido: mensaje.contenido,
+          fecha: mensaje.created_at ? new Date(mensaje.created_at) : new Date(),
+          leido: mensaje.leido
+        });
+        this.scrollToBottom();
+      }
+    });
+    
     this.mostrarChat = true;
+    
+    // Hacer focus en el input después de abrir el modal
+    setTimeout(() => {
+      const input = document.querySelector('.message-input') as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 300);
   }
 
   cargarMensajes(proyectoId: number): void {
-    // TODO: Implementar servicio de mensajes del chat
-    // Por ahora usamos mensajes de ejemplo
-    this.mensajes = [
-      { 
-        id: 1, 
-        proyectoId, 
-        remitente: 'vendedor', 
-        contenido: '¡Hola! He comenzado con el desarrollo de tu proyecto. Te mantendré informado del progreso.', 
-        fecha: new Date('2024-09-15T10:30:00'), 
-        leido: true 
+    console.log('📚 Cargando historial de mensajes del proyecto:', proyectoId);
+    
+    this.chatService.obtenerMensajes(proyectoId).subscribe({
+      next: (mensajes) => {
+        console.log('✅ Mensajes cargados:', mensajes);
+        this.mensajes = mensajes.map(m => ({
+          id: m.id || 0,
+          proyectoId: m.proyecto_id,
+          remitente: m.remitente_tipo,
+          contenido: m.contenido,
+          fecha: m.created_at ? new Date(m.created_at) : new Date(),
+          leido: m.leido
+        }));
+        this.scrollToBottom();
       },
-      { 
-        id: 2, 
-        proyectoId, 
-        remitente: 'cliente', 
-        contenido: 'Perfecto, ¿podrías enviarme los avances cuando tengas algo para mostrar?', 
-        fecha: new Date('2024-09-15T14:15:00'), 
-        leido: true 
+      error: (error) => {
+        console.error('❌ Error al cargar mensajes:', error);
       }
-    ];
+    });
   }
 
   enviarMensaje(): void {
     if (!this.nuevoMensaje.trim() || !this.proyectoSeleccionado) return;
     
-    this.enviandoMensaje = true;
+    const clienteId = this.obtenerClienteId();
+    if (!clienteId) {
+      console.error('No se pudo obtener el ID del cliente');
+      return;
+    }
     
-    // TODO: Implementar servicio de mensajes del chat
-    const mensaje: Mensaje = {
-      id: Date.now(), 
-      proyectoId: this.proyectoSeleccionado.id, 
-      remitente: 'cliente',
-      contenido: this.nuevoMensaje.trim(), 
-      fecha: new Date(), 
-      leido: true
+    const mensaje: MensajeChat = {
+      proyecto_id: this.proyectoSeleccionado.id,
+      remitente_id: clienteId,
+      remitente_tipo: 'cliente',
+      contenido: this.nuevoMensaje.trim(),
+      leido: false
     };
     
-    setTimeout(() => {
-      this.mensajes.push(mensaje);
-      this.nuevoMensaje = '';
-      this.enviandoMensaje = false;
-      this.scrollToBottom();
-    }, 500);
+    this.enviandoMensaje = true;
+    console.log('📤 Enviando mensaje:', mensaje);
+    
+    // Primero guardar en BD
+    this.chatService.guardarMensaje(mensaje).subscribe({
+      next: (mensajeGuardado) => {
+        console.log('✅ Mensaje guardado en BD:', mensajeGuardado);
+        
+        // Luego enviar por WebSocket para tiempo real
+        this.chatService.enviarMensajeWS(mensajeGuardado);
+        
+        this.nuevoMensaje = '';
+        this.enviandoMensaje = false;
+        
+        // Mantener focus en el input
+        setTimeout(() => {
+          const input = document.querySelector('.message-input') as HTMLInputElement;
+          if (input) {
+            input.focus();
+          }
+        }, 100);
+      },
+      error: (error) => {
+        console.error('❌ Error al enviar mensaje:', error);
+        this.enviandoMensaje = false;
+      }
+    });
   }
 
   cerrarChat(): void {
+    console.log('❌ Cerrando chat y desconectando WebSocket');
+    this.chatService.desconectarChat();
     this.mostrarChat = false;
     this.proyectoSeleccionado = null;
     this.mensajes = [];
+    
+    if (this.mensajesSubscription) {
+      this.mensajesSubscription.unsubscribe();
+    }
+  }
+
+  cerrarChatOverlay(event: MouseEvent): void {
+    // Solo cerrar si se hace click directamente en el overlay (fondo negro)
+    if ((event.target as HTMLElement).classList.contains('chat-overlay')) {
+      this.cerrarChat();
+    }
   }
 
   private scrollToBottom(): void {
@@ -161,20 +239,22 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
   }
 
   private iniciarActualizacionAutomatica(): void {
-    // Actualizar cada 30 segundos
     this.actualizacionSubscription = interval(30000).subscribe(() => {
       this.cargarProyectos();
     });
   }
 
   private obtenerClienteId(): number | null {
-    // Obtener del localStorage o del servicio de autenticación
     const usuario = localStorage.getItem('usuario');
     if (usuario) {
       const usuarioObj = JSON.parse(usuario);
+      console.log('✅ Usuario obtenido del localStorage:', usuarioObj);
       return usuarioObj.id;
     }
-    return null;
+    
+    // TEMPORAL: Hardcodear para probar el chat
+    console.warn('⚠️ localStorage vacío. Usando ID hardcodeado: 2');
+    return 2; // Tu cliente William Alvarado
   }
 
   obtenerColorEstado(estado: string): string {
@@ -226,7 +306,6 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
 
   descargarArchivo(nombreArchivo: string): void {
     console.log('Cliente descargando archivo:', nombreArchivo);
-    // TODO: Implementar descarga real de archivos
     alert(`Descargando: ${nombreArchivo}`);
   }
 

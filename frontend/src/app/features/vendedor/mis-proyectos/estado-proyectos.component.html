@@ -36,7 +36,7 @@
           </span>
         </div>
         <div class="project-actions">
-          <button class="btn-action btn-chat" (click)="seleccionarProyecto(proyecto)" title="Abrir Chat">💬</button>
+          <button class="btn-action btn-chat" [routerLink]="['/vendedor/chat', proyecto.id]" title="Abrir Chat">💬</button>
           <button class="btn-action btn-status" (click)="abrirModalEstado(proyecto)" title="Cambiar Estado">⚙️</button>
         </div>
       </div>
@@ -111,56 +111,7 @@
           </div>
         </div>
 
-        <!-- Files Section -->
-        <div class="files-section">
-          <div class="files-header">
-            <h4>📎 Archivos</h4>
-            <button class="btn-upload" (click)="abrirSelectorArchivos()" title="Subir archivo">+</button>
-          </div>
-          
-          <!-- Drag & Drop Zone -->
-          <div 
-            class="drop-zone"
-            [class.drag-over]="isDragOver"
-            (dragover)="onDragOver($event, proyecto)"
-            (dragleave)="onDragLeave($event)"
-            (drop)="onDrop($event, proyecto)"
-            *ngIf="proyecto.archivos.length === 0"
-          >
-            <p>📂 Arrastra archivos aquí o haz clic en +</p>
-          </div>
-
-          <!-- Files List -->
-          <div class="files-list" *ngIf="proyecto.archivos.length > 0">
-            <div class="file-item" *ngFor="let archivo of proyecto.archivos; let i = index">
-              <div class="file-info">
-                <span class="file-icon">{{ obtenerIconoArchivo(archivo.nombre) }}</span>
-                <div class="file-details">
-                  <span class="file-name" (click)="descargarArchivo(archivo.nombre)">{{ archivo.nombre }}</span>
-                  <span class="file-date">Subido el {{ formatearFechaArchivo(archivo.fechaSubida) }}</span>
-                </div>
-              </div>
-              <button class="btn-delete" (click)="eliminarArchivo(proyecto, i)" title="Eliminar">🗑️</button>
-            </div>
-          </div>
-
-          <!-- Upload Progress -->
-          <div class="upload-progress" *ngIf="archivoSubiendo">
-            <div class="progress-info">
-              <span class="uploading-file">📤 Subiendo {{ nombreArchivoSubiendo }}...</span>
-              <span class="progress-percent">{{ progresoSubida }}%</span>
-            </div>
-            <div class="progress-bar-upload">
-              <div class="progress-fill-upload" [style.width.%]="progresoSubida"></div>
-            </div>
-          </div>
-
-          <!-- Hidden file input -->
-          <input #fileInput type="file" multiple (change)="onFileSelected($event, proyecto)" style="display: none">
-        </div>
-      </div>
-    </div>
-
+        
     <!-- Empty State -->
     <div class="empty-state" *ngIf="proyectos.length === 0 && !cargando">
       <div class="empty-icon">📋</div>

@@ -9,7 +9,8 @@ from routers.requerimiento_router import router as requerimiento_router
 from routers.proyecto_router import router as proyecto_router  # NUEVO
 from Usuarios.usuario_router import usuario_router
 from Vendedores.vendedor_router import vendedor_router
-from routers.chatbot_router import router as chatbot_router
+from routers.chat_router import router as chat_router
+from routers.archivo_router import router as archivo_router
 
 # Crear instancia de FastAPI
 app = FastAPI(title="Gestor Virtual")
@@ -33,7 +34,9 @@ app.include_router(usuario_router, prefix="/usuarios", tags=["Usuarios"])
 app.include_router(vendedor_router, prefix="/vendedores", tags=["Vendedores"])
 app.include_router(requerimiento_router)
 app.include_router(proyecto_router)  # NUEVO - Router de proyectos
-app.include_router(chatbot_router, prefix="/chat", tags=["Chat"])
+app.include_router(archivo_router)
+
+app.include_router(chat_router)
 
 # Ruta de prueba
 @app.get("/")

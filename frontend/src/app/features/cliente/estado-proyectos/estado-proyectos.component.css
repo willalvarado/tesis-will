@@ -843,3 +843,28 @@
   border: 1px solid #e9d5ff;
   box-shadow: 0 2px 8px rgba(168, 85, 247, 0.1);
 }
+/* FIX: Asegurar que el input del chat sea interactivo */
+.chat-modal {
+  position: relative;
+  z-index: 1001;
+}
+
+.chat-input {
+  position: relative;
+  z-index: 1002;
+}
+
+.message-input {
+  position: relative;
+  z-index: 1003;
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+}
+
+.input-wrapper {
+  position: relative;
+  z-index: 1002;
+}

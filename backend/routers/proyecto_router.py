@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from modelos.proyecto_modelo import Proyecto, EstadoProyecto
+from modelos.usuario_modelo import UsuarioDB  # Importar modelo Usuario
+from Vendedores.vendedor_modelo import Vendedor as VendedorDB  # Usar modelo existente
 from pydantic import BaseModel
 from datetime import datetime
 from decimal import Decimal
@@ -12,7 +14,25 @@ router = APIRouter(
     tags=["Proyectos"]
 )
 
-# Schemas Pydantic
+# NUEVO: Schema para cliente con nombre
+class ClienteInfo(BaseModel):
+    id: int
+    nombre: str
+    email: str | None = None
+    
+    class Config:
+        from_attributes = True
+
+# NUEVO: Schema para vendedor con nombre
+class VendedorInfo(BaseModel):
+    id: int
+    nombre: str
+    email: str | None = None
+    
+    class Config:
+        from_attributes = True
+
+# Schema modificado con información de cliente y vendedor
 class ProyectoResponse(BaseModel):
     id: int
     requerimiento_id: int
@@ -30,6 +50,9 @@ class ProyectoResponse(BaseModel):
     fecha_completado: datetime | None
     created_at: datetime
     updated_at: datetime
+    # NUEVO: Información del cliente y vendedor
+    cliente: ClienteInfo | None = None
+    vendedor: VendedorInfo | None = None
     
     class Config:
         from_attributes = True
@@ -45,19 +68,61 @@ class ProyectoUpdate(BaseModel):
 
 @router.get("/cliente/{cliente_id}", response_model=List[ProyectoResponse])
 def obtener_proyectos_cliente(cliente_id: int, db: Session = Depends(get_db)):
-    """Obtiene todos los proyectos de un cliente"""
-    proyectos = db.query(Proyecto).filter(
+    """Obtiene todos los proyectos de un cliente CON nombre del vendedor"""
+    # MODIFICADO: Hacer join con la tabla de vendedores
+    proyectos = db.query(
+        Proyecto,
+        VendedorDB.nombre.label('vendedor_nombre'),
+        VendedorDB.correo.label('vendedor_email')
+    ).join(
+        VendedorDB, Proyecto.vendedor_id == VendedorDB.id
+    ).filter(
         Proyecto.cliente_id == cliente_id
     ).order_by(Proyecto.created_at.desc()).all()
-    return proyectos
+    
+    # Construir la respuesta con la info del vendedor
+    resultado = []
+    for proyecto, vendedor_nombre, vendedor_email in proyectos:
+        proyecto_dict = {
+            **proyecto.__dict__,
+            'vendedor': {
+                'id': proyecto.vendedor_id,
+                'nombre': vendedor_nombre,
+                'email': vendedor_email
+            }
+        }
+        resultado.append(proyecto_dict)
+    
+    return resultado
 
 @router.get("/vendedor/{vendedor_id}", response_model=List[ProyectoResponse])
 def obtener_proyectos_vendedor(vendedor_id: int, db: Session = Depends(get_db)):
-    """Obtiene todos los proyectos de un vendedor"""
-    proyectos = db.query(Proyecto).filter(
+    """Obtiene todos los proyectos de un vendedor CON nombre del cliente"""
+    # MODIFICADO: Hacer join con la tabla de usuarios (clientes)
+    proyectos = db.query(
+        Proyecto,
+        UsuarioDB.nombre.label('cliente_nombre'),
+        UsuarioDB.correo.label('cliente_email')
+    ).join(
+        UsuarioDB, Proyecto.cliente_id == UsuarioDB.id
+    ).filter(
         Proyecto.vendedor_id == vendedor_id
     ).order_by(Proyecto.created_at.desc()).all()
-    return proyectos
+    
+    # Construir la respuesta con la info del cliente
+    resultado = []
+    for proyecto, cliente_nombre, cliente_email in proyectos:
+        proyecto_dict = {
+            **proyecto.__dict__,
+            'cliente': {
+                'id': proyecto.cliente_id,
+                'nombre': cliente_nombre,
+                'email': cliente_email
+            }
+        }
+        resultado.append(proyecto_dict)
+    
+    return resultado
 
 @router.get("/{proyecto_id}", response_model=ProyectoResponse)
 def obtener_proyecto(proyecto_id: int, db: Session = Depends(get_db)):

@@ -3,7 +3,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
-import { Router} from '@angular/router'; // ⭐ AGREGAR RouterLink aquí
+import { Router } from '@angular/router';
+// Update the import path if the service is located elsewhere, for example:
+// Update the import path below to the correct location of ProyectosService, for example:
+import { ProyectosService } from '../../../core/services/proyectos.service'; // ⭐ IMPORTAR EL SERVICIO
 
 interface Requerimiento {
   id: number;
@@ -15,6 +18,8 @@ interface Requerimiento {
   especialidad: string;
   estado: string;
   fecha_creacion: Date;
+  pagado?: number;
+  presupuesto?: number;
 }
 
 interface Usuario {
@@ -24,10 +29,11 @@ interface Usuario {
   tipo: string;
 }
 
-interface ActividadReciente {
-  icon: string;
-  descripcion: string;
-  tiempo: string;
+interface ResumenEstados {
+  asignados: number;
+  en_proceso: number;
+  completados: number;
+  cancelados: number;
 }
 
 @Component({
@@ -37,7 +43,6 @@ interface ActividadReciente {
     CommonModule, 
     HttpClientModule, 
     FormsModule,
-      // ⭐ AGREGAR RouterLink aquí en imports
   ],
   templateUrl: './bienvenida-vendedor.component.html',
   styleUrls: ['./bienvenida-vendedor.component.css']
@@ -51,33 +56,23 @@ export class BienvenidaVendedorComponent implements OnInit {
   loading = false;
   error = '';
   
-  // NUEVA PROPIEDAD para controlar las secciones
   activeSection = 'dashboard';
   
-  // NUEVA PROPIEDAD para actividades recientes
-  actividadesRecientes: ActividadReciente[] = [
-    {
-      icon: '🔄',
-      descripcion: 'Proyecto "App Móvil E-commerce" actualizado a En Proceso',
-      tiempo: 'Hace 2 horas'
-    },
-    {
-      icon: '✅',
-      descripcion: 'Completaste el proyecto "Sistema de Inventario"',
-      tiempo: 'Hace 1 día'
-    },
-    {
-      icon: '📋',
-      descripcion: 'Nuevo requerimiento disponible: "Portal Corporativo"',
-      tiempo: 'Hace 2 días'
-    }
-  ];
+  // ⭐ NUEVAS PROPIEDADES para estadísticas dinámicas
+  totalGanadoReal: number = 0;
+  resumenEstados: ResumenEstados = {
+    asignados: 0,
+    en_proceso: 0,
+    completados: 0,
+    cancelados: 0
+  };
 
   private apiUrl = 'http://localhost:8000';
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private proyectosService: ProyectosService // ⭐ INYECTAR EL SERVICIO
   ) {}
 
   ngOnInit(): void {
@@ -86,6 +81,7 @@ export class BienvenidaVendedorComponent implements OnInit {
     if (this.vendedor) {
       this.cargarRequerimientosDisponibles();
       this.cargarMisRequerimientos();
+      this.cargarEstadisticasReales(); // ⭐ CARGAR ESTADÍSTICAS
     }
   }
 
@@ -96,22 +92,47 @@ export class BienvenidaVendedorComponent implements OnInit {
       if (this.vendedor?.tipo !== 'vendedor') {
         this.router.navigate(['/login']);
       } else {
-        // 🔥 solo aquí cargo los requerimientos cuando ya tengo vendedor
         this.cargarRequerimientosDisponibles();
         this.cargarMisRequerimientos();
+        this.cargarEstadisticasReales(); // ⭐ CARGAR ESTADÍSTICAS
       }
     } else {
       this.router.navigate(['/login']);
     }
   }
 
-  // ⚡ MÉTODO MEJORADO para cambiar secciones Y navegar
+  // ⭐ NUEVO MÉTODO: Cargar estadísticas reales
+  cargarEstadisticasReales(): void {
+    if (!this.vendedor) return;
+
+    this.proyectosService.obtenerProyectosVendedor(this.vendedor.id).subscribe({
+      next: (proyectos) => {
+        // Calcular total ganado (solo completados)
+        this.totalGanadoReal = proyectos
+          .filter(p => p.estado === 'completado')
+          .reduce((sum, p) => sum + (p.pagado || 0), 0);
+
+        // Calcular resumen por estados
+        this.resumenEstados = {
+          asignados: proyectos.filter(p => p.estado === 'asignado').length,
+          en_proceso: proyectos.filter(p => p.estado === 'en_proceso').length,
+          completados: proyectos.filter(p => p.estado === 'completado').length,
+          cancelados: proyectos.filter(p => p.estado === 'cancelado').length
+        };
+      },
+      error: (err) => {
+        console.error('Error al cargar estadísticas:', err);
+        // Si falla, usar valores por defecto
+        this.totalGanadoReal = 0;
+      }
+    });
+  }
+
   setActiveSection(section: string): void {
     console.log('Cambiando a sección:', section);
     this.activeSection = section;
     console.log('activeSection ahora es:', this.activeSection);
     
-    // ⭐ NAVEGAR A LA RUTA CORRESPONDIENTE
     switch(section) {
       case 'requerimientos':
         this.router.navigate(['/vendedor/requerimientos']);
@@ -129,7 +150,6 @@ export class BienvenidaVendedorComponent implements OnInit {
     }
   }
 
-  // ⚡ MÉTODO ALTERNATIVO usando RouterLink directamente (recomendado)
   navegarA(ruta: string): void {
     this.router.navigate([ruta]);
   }
@@ -138,7 +158,7 @@ export class BienvenidaVendedorComponent implements OnInit {
     this.loading = true;
     this.error = '';
     
-    let url = `${this.apiUrl}/requerimientos/vendedor/disponibles`;
+    let url = `${this.apiUrl}/requerimientos/vendedores/disponibles`;
     
     if (this.vendedorEspecialidad) {
       url += `?especialidad=${encodeURIComponent(this.vendedorEspecialidad)}`;
@@ -154,7 +174,6 @@ export class BienvenidaVendedorComponent implements OnInit {
         this.loading = false;
         console.error(err);
         
-        // DATOS DE PRUEBA si falla la API
         this.requerimientosDisponibles = [
           {
             id: 1,
@@ -194,7 +213,6 @@ export class BienvenidaVendedorComponent implements OnInit {
         error: (err) => {
           console.error('Error al cargar mis requerimientos:', err);
           
-          // DATOS DE PRUEBA si falla la API
           this.misRequerimientos = [
             {
               id: 3,
@@ -227,6 +245,7 @@ export class BienvenidaVendedorComponent implements OnInit {
         alert('¡Requerimiento asignado exitosamente!');
         this.cargarRequerimientosDisponibles();
         this.cargarMisRequerimientos();
+        this.cargarEstadisticasReales(); // ⭐ ACTUALIZAR ESTADÍSTICAS
       },
       error: (err) => {
         alert('Error al tomar el requerimiento');
@@ -245,6 +264,7 @@ export class BienvenidaVendedorComponent implements OnInit {
       next: () => {
         alert('Estado actualizado exitosamente');
         this.cargarMisRequerimientos();
+        this.cargarEstadisticasReales(); // ⭐ ACTUALIZAR ESTADÍSTICAS
       },
       error: (err) => {
         alert('Error al actualizar el estado');
@@ -253,7 +273,6 @@ export class BienvenidaVendedorComponent implements OnInit {
     });
   }
 
-  // NUEVOS MÉTODOS para funcionalidades
   contarProyectosActivos(): number {
     return this.misRequerimientos.filter(req => 
       req.estado === 'asignado' || req.estado === 'en_proceso'

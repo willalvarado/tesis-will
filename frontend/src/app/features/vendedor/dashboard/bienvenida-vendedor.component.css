@@ -170,18 +170,17 @@ body {
   50% { transform: scale(1.05); }
 }
 
-
 .logout {
   margin: 24px;
   padding: 14px 16px;
-  background: linear-gradient(135deg, #fbbf24, #f59e0b); /* ← AMARILLO HERMOSO */
-  color: #1f2937; /* Texto oscuro para contraste */
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #1f2937;
   border: none;
   border-radius: var(--radius);
   font-weight: 600;
   cursor: pointer;
   transition: var(--transition);
-  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4); /* Sombra amarilla */
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
   position: relative;
   overflow: hidden;
 }
@@ -203,8 +202,8 @@ body {
 
 .logout:hover {
   transform: translateY(-2px);
-  background: linear-gradient(135deg, #f59e0b, #d97706); /* Amarillo más oscuro al hover */
-  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.6); /* Sombra más intensa */
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 10px 30px rgba(251, 191, 36, 0.6);
 }
 
 /* MAIN CONTENT */
@@ -245,7 +244,6 @@ body {
   font-weight: 700;
   background: var(--primary);
   -webkit-background-clip: text;
-  /* MAIN CONTENT -webkit-text-fill-color: transparent;*/
   background-clip: text;
   animation: text-glow 3s ease-in-out infinite;
 }
@@ -313,6 +311,454 @@ body {
   }
 }
 
+/* ========================================
+   🧡 CONECTA SOLUTIONS - DASHBOARD
+   ======================================== */
+
+/* Sección de Marca */
+.marca-header {
+  background: linear-gradient(135deg, #ff6b35 0%, #f7931e 50%, #000000 100%);
+  border-radius: 24px;
+  padding: 40px;
+  margin: 32px;
+  box-shadow: 0 20px 60px rgba(255, 107, 53, 0.4);
+  position: relative;
+  overflow: hidden;
+  animation: marca-entrance 0.8s ease-out;
+}
+
+@keyframes marca-entrance {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.marca-header::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+  animation: marca-shine 4s ease-in-out infinite;
+}
+
+@keyframes marca-shine {
+  0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  50% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.marca-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.logo-icon {
+  width: 80px;
+  height: 80px;
+  background: #000000;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin-right: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  animation: logo-pulse 2s ease-in-out infinite;
+}
+
+@keyframes logo-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.logo-text h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  letter-spacing: 1px;
+}
+
+.logo-text p {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 8px 0 0 0;
+  font-weight: 500;
+}
+
+/* Bienvenida Personalizada */
+.bienvenida-card {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(0, 0, 0, 0.05));
+  border-left: 6px solid #ff6b35;
+  border-radius: 20px;
+  padding: 32px;
+  margin: 0 32px 32px 32px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+  animation: bienvenida-slide 0.6s ease-out 0.2s both;
+}
+
+@keyframes bienvenida-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.bienvenida-card h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 8px 0;
+}
+
+.bienvenida-card p {
+  font-size: 1.1rem;
+  color: #4a5568;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Estadísticas del Mes */
+.estadisticas-mes {
+  margin: 0 32px 32px 32px;
+  animation: stats-fade 0.8s ease-out 0.4s both;
+}
+
+@keyframes stats-fade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.estadisticas-mes h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b35, #f7931e);
+}
+
+.stat-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 16px 40px rgba(255, 107, 53, 0.2);
+  border-color: rgba(255, 107, 53, 0.3);
+}
+
+/* Colores específicos para cada stat */
+.stat-activos::before {
+  background: linear-gradient(90deg, #ff6b35, #f7931e);
+}
+
+.stat-completados::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.stat-ganancias::before {
+  background: linear-gradient(90deg, #000000, #1a1a1a);
+}
+
+.stat-card .stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-right: 20px;
+  transition: transform 0.3s ease;
+}
+
+.stat-activos .stat-icon {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  box-shadow: 0 8px 20px rgba(255, 107, 53, 0.3);
+}
+
+.stat-completados .stat-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+}
+
+.stat-ganancias .stat-icon {
+  background: linear-gradient(135deg, #000000, #1a1a1a);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  color: #ff6b35;
+}
+
+.stat-card:hover .stat-icon {
+  transform: rotate(5deg) scale(1.1);
+}
+
+.stat-info p {
+  color: #4a5568;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.stat-info h2 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1;
+}
+
+.stat-activos .stat-info h2 {
+  color: #ff6b35;
+}
+
+.stat-completados .stat-info h2 {
+  color: #10b981;
+}
+
+.stat-ganancias .stat-info h2 {
+  color: #000000;
+}
+
+/* ========================================
+   📋 RESUMEN POR ESTADOS
+   ======================================== */
+
+.resumen-estados {
+  background: var(--glass);
+  backdrop-filter: blur(20px);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin: 0 32px 32px 32px;
+  position: relative;
+  animation: fadeInUp 0.8s ease-out 0.6s both;
+}
+
+.resumen-estados::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6b35, #f7931e);
+  border-radius: 24px 24px 0 0;
+}
+
+.resumen-estados h3 {
+  color: #2d3748;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.estados-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.estado-item {
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  transition: var(--transition);
+  border-left: 4px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.estado-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(102, 126, 234, 0.1), transparent);
+  transition: var(--transition);
+}
+
+.estado-item:hover::before {
+  left: 100%;
+}
+
+.estado-item:hover {
+  transform: translateX(8px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Colores por estado */
+.estado-asignado {
+  background: rgba(96, 165, 250, 0.08);
+  border-left-color: #60a5fa;
+}
+
+.estado-asignado:hover {
+  background: rgba(96, 165, 250, 0.12);
+}
+
+.estado-proceso {
+  background: rgba(255, 107, 53, 0.08);
+  border-left-color: #ff6b35;
+}
+
+.estado-proceso:hover {
+  background: rgba(255, 107, 53, 0.12);
+}
+
+.estado-completado {
+  background: rgba(16, 185, 129, 0.08);
+  border-left-color: #10b981;
+}
+
+.estado-completado:hover {
+  background: rgba(16, 185, 129, 0.12);
+}
+
+.estado-cancelado {
+  background: rgba(239, 68, 68, 0.08);
+  border-left-color: #ef4444;
+}
+
+.estado-cancelado:hover {
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.estado-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  margin-right: 16px;
+  transition: var(--transition);
+}
+
+.estado-asignado .estado-icon {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.3);
+}
+
+.estado-proceso .estado-icon {
+  background: linear-gradient(135deg, #ff6b35, #f7931e);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+}
+
+.estado-completado .estado-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.estado-cancelado .estado-icon {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.estado-item:hover .estado-icon {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.estado-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.estado-nombre {
+  color: #4a5568;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.estado-cantidad {
+  color: #2d3748;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Total de proyectos */
+.total-proyectos {
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(0, 0, 0, 0.05));
+  border-radius: 12px;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 4px solid #ff6b35;
+}
+
+.total-proyectos span {
+  color: #4a5568;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.total-proyectos strong {
+  color: #ff6b35;
+  font-size: 1.8rem;
+  font-weight: 800;
+}
+
 /* SECTION HEADERS */
 .section-header {
   display: flex;
@@ -347,7 +793,7 @@ body {
   box-shadow: 0 8px 20px rgba(79, 172, 254, 0.5);
 }
 
-/* CARDS */
+/* CARDS (antiguas del dashboard original) */
 .cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -995,6 +1441,60 @@ body {
 
   .header {
     padding: 16px;
+  }
+
+  /* RESPONSIVE Dashboard Conecta Solutions */
+  .marca-header {
+    padding: 24px;
+    margin: 16px;
+  }
+  
+  .logo-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2rem;
+    margin-right: 16px;
+  }
+  
+  .logo-text h1 {
+    font-size: 1.8rem;
+  }
+  
+  .logo-text p {
+    font-size: 0.9rem;
+  }
+  
+  .bienvenida-card {
+    padding: 20px;
+    margin: 0 16px 16px 16px;
+  }
+  
+  .bienvenida-card h2 {
+    font-size: 1.5rem;
+  }
+  
+  .estadisticas-mes {
+    margin: 0 16px 16px 16px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* RESPONSIVE para Resumen Estados */
+  .resumen-estados {
+    margin: 0 16px 16px 16px;
+    padding: 20px;
+  }
+  
+  .estados-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .total-proyectos {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
   }
 
   .actividad {
