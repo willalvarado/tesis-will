@@ -1,41 +1,53 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RequerimientosService } from '../../../core/services/requerimientos.service';
+import { OpenAIService, Mensaje } from '../../../core/services/openai.service';
+
+interface MensajeChat {
+  role: 'user' | 'assistant';
+  content: string;
+  mostrarLoader?: boolean;
+}
 
 @Component({
   selector: 'app-chat-asistente',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './chat-asistente.component.html',
   styleUrls: ['./chat-asistente.component.css']
 })
-export class ChatAsistenteComponent {
-  requerimientoForm: FormGroup;
-  enviando = false;
-  mensajeExito = '';
-  mensajeError = '';
+export class ChatAsistenteComponent implements OnInit {
+  @ViewChild('chatMessages') chatMessages!: ElementRef;
+
+  mensajes: MensajeChat[] = [];
   mensajeUsuario = '';
+  enviando = false;
+  conversacionFinalizada = false;
+  requerimientoGenerado: any = null;
 
   constructor(
-    private fb: FormBuilder,
+    private openAIService: OpenAIService,
     private requerimientosService: RequerimientosService,
     private router: Router
-  ) {
-    this.requerimientoForm = this.fb.group({
-      mensaje: ['', [Validators.required, Validators.minLength(20)]]
-    });
+  ) {}
+
+  ngOnInit(): void {
+    // Mensaje de bienvenida inicial
+    this.agregarMensajeAsistente(
+      '¡Hola! 👋 Soy tu asistente virtual de Conecta Solutions.\n\n' +
+      'Estoy aquí para ayudarte a definir tu proyecto. Puedes contarme sobre tu idea y te guiaré paso a paso.\n\n' +
+      '💡 También puedes usar estas sugerencias:'
+    );
   }
 
   usarSugerencia(sugerencia: string): void {
-    this.requerimientoForm.get('mensaje')?.setValue(sugerencia);
-    // Auto focus en el textarea
+    this.mensajeUsuario = sugerencia;
     setTimeout(() => {
       const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
       if (textarea) {
         textarea.focus();
-        textarea.setSelectionRange(sugerencia.length, sugerencia.length);
       }
     }, 100);
   }
@@ -43,64 +55,144 @@ export class ChatAsistenteComponent {
   onEnterPress(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (this.requerimientoForm.valid && !this.enviando) {
-        this.crearRequerimiento();
+      if (this.mensajeUsuario.trim() && !this.enviando) {
+        this.enviarMensaje();
       }
     }
   }
 
-  crearRequerimiento(): void {
-    if (this.requerimientoForm.invalid) return;
+  enviarMensaje(): void {
+    if (!this.mensajeUsuario.trim() || this.enviando || this.conversacionFinalizada) {
+      return;
+    }
 
+    const mensaje = this.mensajeUsuario.trim();
+    this.mensajeUsuario = '';
+
+    // Agregar mensaje del usuario
+    this.agregarMensajeUsuario(mensaje);
+
+    // Mostrar loader
     this.enviando = true;
-    this.mensajeExito = '';
-    this.mensajeError = '';
-    this.mensajeUsuario = this.requerimientoForm.get('mensaje')?.value;
+    this.agregarMensajeAsistente('', true);
 
+    // Preparar historial para enviar a OpenAI
+    const historial: Mensaje[] = this.mensajes
+      .filter(m => !m.mostrarLoader)
+      .map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
+    // Llamar a OpenAI
+    this.openAIService.chatRequerimiento(historial).subscribe({
+      next: (response) => {
+        // Quitar loader
+        this.mensajes = this.mensajes.filter(m => !m.mostrarLoader);
+
+        if (response.exito) {
+          // Agregar respuesta del asistente
+          this.agregarMensajeAsistente(response.respuesta);
+
+          // Si la conversación terminó
+          if (response.finalizado && response.requerimiento) {
+            this.conversacionFinalizada = true;
+            this.requerimientoGenerado = response.requerimiento;
+            
+            // Crear el requerimiento en la base de datos
+            this.crearRequerimientoFinal();
+          }
+        } else {
+          this.agregarMensajeAsistente(
+            '❌ Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta nuevamente.'
+          );
+        }
+
+        this.enviando = false;
+        this.scrollToBottom();
+      },
+      error: (error) => {
+        console.error('Error en chat:', error);
+        
+        // Quitar loader
+        this.mensajes = this.mensajes.filter(m => !m.mostrarLoader);
+        
+        this.agregarMensajeAsistente(
+          '❌ Error de conexión. Por favor, verifica tu conexión e intenta nuevamente.'
+        );
+        
+        this.enviando = false;
+        this.scrollToBottom();
+      }
+    });
+  }
+
+  private crearRequerimientoFinal(): void {
     const usuario = localStorage.getItem('usuario');
     if (!usuario) {
-      this.mensajeError = 'No se encontró información del usuario';
-      this.enviando = false;
+      this.agregarMensajeAsistente('❌ Error: No se encontró información del usuario.');
       return;
     }
 
     const clienteId = JSON.parse(usuario).id;
-    const mensaje = this.requerimientoForm.get('mensaje')?.value;
 
-    // Scroll to bottom
-    this.scrollToBottom();
+    // Mostrar mensaje de creación
+    this.agregarMensajeAsistente(
+      '✨ Perfecto! Estoy creando tu requerimiento en el sistema...'
+    );
 
-    this.requerimientosService.crearRequerimiento(clienteId, mensaje).subscribe({
+    // Crear requerimiento usando el servicio existente
+    this.requerimientosService.crearRequerimiento(
+      clienteId, 
+      this.requerimientoGenerado.mensaje
+    ).subscribe({
       next: (requerimiento) => {
         console.log('Requerimiento creado:', requerimiento);
-        this.mensajeExito = '¡Requerimiento creado exitosamente!';
-        this.requerimientoForm.reset();
-        this.enviando = false;
+        
+        this.agregarMensajeAsistente(
+          '✅ ¡Excelente! Tu requerimiento ha sido creado exitosamente.\n\n' +
+          `📋 **${this.requerimientoGenerado.titulo}**\n\n` +
+          `💰 Presupuesto: $${this.requerimientoGenerado.presupuesto}\n\n` +
+          'Te notificaremos cuando un vendedor especializado acepte tu proyecto.\n\n' +
+          '🔄 Redirigiendo a tus requerimientos en 3 segundos...'
+        );
 
-        // Scroll to bottom
-        this.scrollToBottom();
-
-        // Redirigir a la lista después de 3 segundos
+        // Redirigir después de 3 segundos
         setTimeout(() => {
           this.router.navigate(['/cliente/requerimientos']);
         }, 3000);
       },
       error: (error) => {
         console.error('Error al crear requerimiento:', error);
-        this.mensajeError = 'Error al crear el requerimiento. Por favor, intenta nuevamente.';
-        this.enviando = false;
-
-        // Scroll to bottom
-        this.scrollToBottom();
+        this.agregarMensajeAsistente(
+          '❌ Hubo un error al guardar tu requerimiento. Por favor, intenta nuevamente o contacta soporte.'
+        );
       }
     });
   }
 
+  private agregarMensajeUsuario(contenido: string): void {
+    this.mensajes.push({
+      role: 'user',
+      content: contenido
+    });
+    this.scrollToBottom();
+  }
+
+  private agregarMensajeAsistente(contenido: string, mostrarLoader: boolean = false): void {
+    this.mensajes.push({
+      role: 'assistant',
+      content: contenido,
+      mostrarLoader: mostrarLoader
+    });
+    this.scrollToBottom();
+  }
+
   private scrollToBottom(): void {
     setTimeout(() => {
-      const chatMessages = document.querySelector('.chat-messages');
-      if (chatMessages) {
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+      if (this.chatMessages) {
+        const element = this.chatMessages.nativeElement;
+        element.scrollTop = element.scrollHeight;
       }
     }, 100);
   }

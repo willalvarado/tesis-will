@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { RequerimientosService, Requerimiento } from '../../../core/services/requerimientos.service';
 
 @Component({
@@ -9,6 +9,17 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
   imports: [CommonModule, RouterLink],
   template: `
     <div class="requerimientos-container">
+      <!-- 🔥 NUEVA BARRA DE NAVEGACIÓN SUPERIOR -->
+      <div class="top-navigation">
+        <button class="btn-back" (click)="volverAtras()">
+          ← Atrás
+        </button>
+        <h2 class="page-title"></h2>
+        <button class="btn-proyectos" (click)="irAProyectos()">
+          📂 Proyectos
+        </button>
+      </div>
+
       <!-- Header con estadísticas -->
       <div class="header">
         <div class="header-left">
@@ -101,26 +112,6 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
           </div>
         </div>
       </section>
-
-      <!-- Navegación inferior -->
-      <nav class="bottom-nav">
-        <a routerLink="/vendedor/bienvenida" routerLinkActive="active">
-          <span class="icon">🏠</span>
-          <span>Inicio</span>
-        </a>
-        <a routerLink="/vendedor/requerimientos" routerLinkActive="active">
-          <span class="icon">📋</span>
-          <span>Requerimientos</span>
-        </a>
-        <a routerLink="/vendedor/proyectos" routerLinkActive="active">
-          <span class="icon">🚀</span>
-          <span>Proyectos</span>
-        </a>
-        <a routerLink="/vendedor/mi-perfil" routerLinkActive="active">
-          <span class="icon">👤</span>
-          <span>Perfil</span>
-        </a>
-      </nav>
     </div>
   `,
   styles: [`
@@ -128,9 +119,67 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       min-height: 100vh;
       background: #f8f9fa;
       padding: 20px;
-      padding-bottom: 100px;
+      padding-top: 80px;
       max-width: 1200px;
       margin: 0 auto;
+    }
+
+    /* 🔥 NUEVA BARRA DE NAVEGACIÓN SUPERIOR */
+    .top-navigation {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      z-index: 1000;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    .page-title {
+      flex: 1;
+      text-align: center;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+
+    .btn-back, .btn-proyectos {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back {
+      background: linear-gradient(135deg, #6c757d, #5a6268);
+      color: white;
+    }
+
+    .btn-back:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+    }
+
+    .btn-proyectos {
+      background: linear-gradient(135deg, #ff6b35, #f7931e);
+      color: white;
+    }
+
+    .btn-proyectos:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
     }
 
     .header {
@@ -357,53 +406,23 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       margin-bottom: 20px !important;
     }
 
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: white;
-      display: flex;
-      justify-content: space-around;
-      padding: 12px 0;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
-      border-top: 1px solid #eee;
-    }
-
-    .bottom-nav a {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-decoration: none;
-      color: #666;
-      padding: 8px 12px;
-      border-radius: 8px;
-      transition: all 0.2s;
-      min-width: 60px;
-    }
-
-    .bottom-nav a:hover {
-      background: #f8f9fa;
-    }
-
-    .bottom-nav a.active {
-      color: #667eea;
-      background: rgba(102, 126, 234, 0.1);
-    }
-
-    .bottom-nav .icon {
-      font-size: 18px;
-      margin-bottom: 4px;
-    }
-
-    .bottom-nav span:last-child {
-      font-size: 11px;
-      font-weight: 500;
-    }
-
     @media (max-width: 768px) {
       .requerimientos-container {
         padding: 15px;
+        padding-top: 70px;
+      }
+
+      .top-navigation {
+        padding: 12px 16px;
+      }
+
+      .page-title {
+        font-size: 18px;
+      }
+
+      .btn-back, .btn-proyectos {
+        padding: 8px 14px;
+        font-size: 13px;
       }
       
       .header {
@@ -426,10 +445,22 @@ export class RequerimientoComponent implements OnInit {
   requerimientosDisponibles: Requerimiento[] = [];
   misRequerimientos: Requerimiento[] = [];
 
-  constructor(private requerimientosService: RequerimientosService) {}
+  constructor(
+    private requerimientosService: RequerimientosService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
     this.cargarRequerimientos();
+  }
+
+  // 🔥 NUEVOS MÉTODOS DE NAVEGACIÓN
+  volverAtras(): void {
+    this.router.navigate(['/vendedor/bienvenida']);
+  }
+
+  irAProyectos(): void {
+    this.router.navigate(['/vendedor/mis-proyectos']);
   }
 
   cargarRequerimientos(): void {
@@ -438,7 +469,6 @@ export class RequerimientoComponent implements OnInit {
       const vendedor = JSON.parse(usuario);
       const vendedorId = vendedor.id;
 
-      // Cargar requerimientos disponibles
       this.requerimientosService.obtenerRequerimientosDisponibles().subscribe({
         next: (requerimientos) => {
           this.requerimientosDisponibles = requerimientos;
@@ -449,7 +479,6 @@ export class RequerimientoComponent implements OnInit {
         }
       });
 
-      // Cargar mis requerimientos aceptados
       this.requerimientosService.obtenerRequerimientosVendedor(vendedorId).subscribe({
         next: (requerimientos) => {
           this.misRequerimientos = requerimientos;
@@ -472,7 +501,7 @@ export class RequerimientoComponent implements OnInit {
           next: () => {
             console.log('Requerimiento aceptado exitosamente');
             alert('✅ ¡Proyecto aceptado exitosamente!');
-            this.cargarRequerimientos(); // Recargar listas
+            this.cargarRequerimientos();
           },
           error: (error) => {
             console.error('Error al aceptar requerimiento:', error);

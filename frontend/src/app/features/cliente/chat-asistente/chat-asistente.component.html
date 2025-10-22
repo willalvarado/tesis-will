@@ -4,90 +4,83 @@
     <div class="assistant-info">
       <div class="avatar">🤖</div>
       <div class="info">
-        <h3>Asistente Virtual</h3>
-        <p>Describe tu requerimiento y te ayudo a conectarte con el vendedor perfecto</p>
+        <h3>Asistente Virtual con IA</h3>
+        <p>Powered by OpenAI - Te ayudo a definir tu proyecto paso a paso</p>
       </div>
     </div>
   </div>
 
   <!-- Chat Messages Area -->
   <div class="chat-messages" #chatMessages>
-    <div class="message assistant-message">
-      <div class="avatar">🚀</div>
-      <div class="message-content">
-        <p><strong>¡Hola! Soy tu asistente virtual</strong></p>
-        <p>Puedes decirme cosas como:</p>
-        <div class="suggestions">
-          <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para mi negocio')">
-            📱 "Necesito una aplicación móvil para mi negocio"
+    
+    <!-- Mensajes del chat -->
+    <div 
+      *ngFor="let mensaje of mensajes" 
+      [class.assistant-message]="mensaje.role === 'assistant'"
+      [class.user-message]="mensaje.role === 'user'"
+      class="message"
+    >
+      <!-- Mensaje del asistente -->
+      <ng-container *ngIf="mensaje.role === 'assistant'">
+        <div class="avatar">🤖</div>
+        <div class="message-content">
+          <div *ngIf="!mensaje.mostrarLoader">
+            <p *ngFor="let linea of mensaje.content.split('\n')" [innerHTML]="linea || '&nbsp;'"></p>
+            
+            <!-- Sugerencias iniciales -->
+            <div class="suggestions" *ngIf="mensajes.length === 1">
+              <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para delivery de comida')">
+                📱 "Necesito una aplicación móvil para delivery"
+              </div>
+              <div class="suggestion" (click)="usarSugerencia('Quiero un sitio web con sistema de pagos')">
+                🌐 "Quiero un sitio web con pagos"
+              </div>
+              <div class="suggestion" (click)="usarSugerencia('Necesito un sistema de gestión empresarial')">
+                📊 "Necesito un sistema de gestión"
+              </div>
+            </div>
           </div>
-          <div class="suggestion" (click)="usarSugerencia('Quiero un sitio web con sistema de pagos')">
-            🌐 "Quiero un sitio web con sistema de pagos"
-          </div>
-          <div class="suggestion" (click)="usarSugerencia('Necesito un sistema de inventario')">
-            📊 "Necesito un sistema de inventario"
+          
+          <!-- Loader mientras procesa -->
+          <div *ngIf="mensaje.mostrarLoader" class="processing-status">
+            <div class="loader"></div>
+            <span>Procesando tu mensaje...</span>
           </div>
         </div>
-      </div>
-    </div>
+      </ng-container>
 
-    <!-- Mensaje del usuario si existe -->
-    <div class="message user-message" *ngIf="mensajeUsuario">
-      <div class="message-content">
-        <p>{{ mensajeUsuario }}</p>
-      </div>
-      <div class="avatar user-avatar">👤</div>
-    </div>
-
-    <!-- Respuesta del asistente después de enviar -->
-    <div class="message assistant-message" *ngIf="mensajeUsuario && !enviando">
-      <div class="avatar">🤖</div>
-      <div class="message-content">
-        <p><strong>¡Perfecto!</strong> He recibido tu requerimiento.</p>
-        <p>Estoy procesando tu solicitud y buscando vendedores especializados que coincidan con tus necesidades.</p>
-        <div class="processing-status" *ngIf="!mensajeExito && !mensajeError">
-          <div class="loader"></div>
-          <span>Procesando...</span>
+      <!-- Mensaje del usuario -->
+      <ng-container *ngIf="mensaje.role === 'user'">
+        <div class="message-content">
+          <p>{{ mensaje.content }}</p>
         </div>
-      </div>
+        <div class="avatar user-avatar">👤</div>
+      </ng-container>
     </div>
 
-    <!-- Mensajes de éxito/error -->
-    <div class="message assistant-message" *ngIf="mensajeExito">
-      <div class="avatar">✅</div>
-      <div class="message-content success">
-        <p><strong>{{ mensajeExito }}</strong></p>
-        <p>Te notificaremos cuando un vendedor acepte tu proyecto.</p>
-      </div>
-    </div>
-
-    <div class="message assistant-message" *ngIf="mensajeError">
-      <div class="avatar">❌</div>
-      <div class="message-content error">
-        <p><strong>{{ mensajeError }}</strong></p>
-      </div>
-    </div>
   </div>
 
   <!-- Chat Input -->
   <div class="chat-input-container">
-    <form [formGroup]="requerimientoForm" (ngSubmit)="crearRequerimiento()" class="chat-form">
+    <div class="chat-form">
       <div class="input-group">
         <textarea 
-          formControlName="mensaje"
-          placeholder="Escribe tu requerimiento aquí..."
+          [(ngModel)]="mensajeUsuario"
+          placeholder="Escribe tu mensaje aquí..."
           (keydown)="onEnterPress($event)"
-          [disabled]="enviando"
+          [disabled]="enviando || conversacionFinalizada"
+          rows="1"
         ></textarea>
         <button 
-          type="submit" 
-          [disabled]="requerimientoForm.invalid || enviando"
+          type="button"
+          (click)="enviarMensaje()"
+          [disabled]="!mensajeUsuario.trim() || enviando || conversacionFinalizada"
           class="send-button"
         >
           <span *ngIf="!enviando">📤</span>
           <span *ngIf="enviando" class="spinner">⏳</span>
         </button>
       </div>
-    </form>
+    </div>
   </div>
 </div>
