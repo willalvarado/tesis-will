@@ -1,0 +1,161 @@
+<div class="registro-container">
+  <div class="registro-card">
+    <!-- Logo y Header -->
+    <div class="logo-section">
+      <div class="logo-circle">
+        <span>👤</span>
+      </div>
+      <h1>Registro de Cliente</h1>
+      <p class="subtitle">Crea tu cuenta para buscar servicios de TI</p>
+    </div>
+    
+    <!-- Formulario -->
+    <form [formGroup]="formularioRegistro" (ngSubmit)="enviarRegistro()" class="registro-form">
+      <!-- Nombres -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">👤</i>
+          <input 
+            type="text" 
+            id="nombres" 
+            formControlName="nombres" 
+            placeholder="Nombres" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="nombres?.invalid && (nombres?.dirty || nombres?.touched)" class="error-message">
+          <div *ngIf="nombres?.errors?.['required']">Los nombres son obligatorios.</div>
+        </div>
+      </div>
+
+      <!-- Apellidos -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">👥</i>
+          <input 
+            type="text" 
+            id="apellidos" 
+            formControlName="apellidos" 
+            placeholder="Apellidos" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="apellidos?.invalid && (apellidos?.dirty || apellidos?.touched)" class="error-message">
+          <div *ngIf="apellidos?.errors?.['required']">Los apellidos son obligatorios.</div>
+        </div>
+      </div>
+      
+      <!-- Email -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">✉️</i>
+          <input 
+            type="email" 
+            id="correo" 
+            formControlName="correo" 
+            placeholder="Correo electrónico" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="correo?.invalid && (correo?.dirty || correo?.touched)" class="error-message">
+          <div *ngIf="correo?.errors?.['required']">El correo es obligatorio.</div>
+          <div *ngIf="correo?.errors?.['email']">Ingrese un correo válido.</div>
+        </div>
+      </div>
+      
+      <!-- Contraseña -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🔒</i>
+          <input 
+            type="password" 
+            id="contrasena" 
+            formControlName="contrasena" 
+            placeholder="Contraseña" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="contrasena?.invalid && (contrasena?.dirty || contrasena?.touched)" class="error-message">
+          <div *ngIf="contrasena?.errors?.['required']">La contraseña es obligatoria.</div>
+          <div *ngIf="contrasena?.errors?.['minlength']">Debe tener al menos 6 caracteres.</div>
+        </div>
+      </div>
+      
+      <!-- Confirmar Contraseña -->
+      <div class="form-group">
+        <div class="input-wrapper">
+          <i class="input-icon">🔐</i>
+          <input 
+            type="password" 
+            id="confirmarContrasena" 
+            formControlName="confirmarContrasena" 
+            placeholder="Confirmar contraseña" 
+            class="form-control"
+          />
+          <div class="input-border"></div>
+        </div>
+        <div *ngIf="confirmarContrasena?.invalid && (confirmarContrasena?.dirty || confirmarContrasena?.touched)" class="error-message">
+          <div *ngIf="confirmarContrasena?.errors?.['required']">Confirmar contraseña es obligatorio.</div>
+        </div>
+        <div *ngIf="formularioRegistro.errors?.['noCoinciden'] && confirmarContrasena?.touched" class="error-message">
+          Las contraseñas no coinciden.
+        </div>
+      </div>
+      
+      <!-- Botón Registro -->
+      <div class="form-actions">
+        <button 
+          type="submit" 
+          [disabled]="formularioRegistro.invalid" 
+          class="btn-registro"
+        >
+          <span class="btn-text">Crear mi cuenta</span>
+          <span class="btn-shimmer"></span>
+        </button>
+      </div>
+      
+      <!-- Mensajes de Error y Éxito -->
+      <div *ngIf="errorRegistro" class="error-banner">
+        <i class="error-icon">⚠️</i>
+        {{ errorRegistro }}
+      </div>
+      
+      <div *ngIf="registroExitoso" class="success-banner">
+        <i class="success-icon">✅</i>
+        {{ registroExitoso }}
+      </div>
+    </form>
+    
+    <!-- Acciones Alternativas -->
+    <div class="alternative-actions">
+      <button class="btn-back" [routerLink]="['/']">
+        ← Volver al inicio
+      </button>
+
+      <div class="divider">
+        <span>¿Ya tienes cuenta?</span>
+      </div>
+
+      <div class="login-section">
+        <button class="btn-login-redirect" [routerLink]="['/login']">
+          <div class="btn-icon">🚀</div>
+          <div class="btn-content">
+            <span class="btn-title">Iniciar Sesión</span>
+            <span class="btn-desc">Accede a tu cuenta existente</span>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Elementos de fondo decorativos -->
+  <div class="bg-decoration">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+  </div>
+</div>

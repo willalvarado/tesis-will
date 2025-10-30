@@ -1,0 +1,192 @@
+<div class="estado-proyectos-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1>📊 Estado de Proyectos</h1>
+      <p>Gestiona y monitorea el progreso de tus proyectos</p>
+    </div>
+    <div class="header-buttons">
+      <button class="btn-nav" routerLink="/vendedor/requerimientos">
+        📋 Requerimientos
+      </button>
+      <button class="btn-nav" routerLink="/vendedor/bienvenida">
+        🏠 Dashboard
+      </button>
+      <button class="btn-refresh" (click)="cargarProyectos()" [disabled]="cargando">
+        🔄 {{ cargando ? 'Actualizando...' : 'Actualizar' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-container" *ngIf="cargando && proyectos.length === 0">
+    <div class="loader"></div>
+    <p>Cargando proyectos...</p>
+  </div>
+
+  <!-- Projects Grid -->
+  <div class="projects-grid" *ngIf="!cargando || proyectos.length > 0">
+    <div class="project-card" *ngFor="let proyecto of proyectos" [class.selected]="proyectoSeleccionado?.id === proyecto.id">
+      <!-- Project Header -->
+      <div class="project-header">
+        <div class="project-title">
+          <h3>{{ proyecto.nombre }}</h3>
+          <span class="status-badge" [style.background-color]="obtenerColorEstado(proyecto.estado)">
+            {{ obtenerEtiquetaEstado(proyecto.estado) }}
+          </span>
+        </div>
+        <div class="project-actions">
+          <button class="btn-action btn-chat" [routerLink]="['/vendedor/chat', proyecto.id]" title="Abrir Chat">💬</button>
+          <button class="btn-action btn-status" (click)="abrirModalEstado(proyecto)" title="Cambiar Estado">⚙️</button>
+        </div>
+      </div>
+
+      <!-- Project Info -->
+      <div class="project-info">
+        <p class="description">{{ proyecto.descripcion }}</p>
+        
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">👤 Cliente:</span>
+            <span class="value">{{ proyecto.cliente?.nombre || 'Cliente ' + proyecto.cliente_id }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">📅 Inicio:</span>
+            <span class="value">{{ formatearFecha(proyecto.fechaInicio) }}</span>
+          </div>
+          <div class="info-item" colspan="2">
+            <span class="label">⏰ Fecha de Entrega:</span>
+            <input 
+              type="date" 
+              [value]="proyecto.fechaEstimada | date:'yyyy-MM-dd'"
+              (change)="actualizarFechaEntrega(proyecto, $event)"
+              class="date-input"
+            >
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-section">
+          <div class="progress-header">
+            <span class="progress-label">Progreso</span>
+            <span class="progress-percentage">{{ proyecto.progreso }}%</span>
+          </div>
+          <div class="progress-controls">
+            <input 
+              type="range" 
+              min="0" 
+              max="100" 
+              [value]="proyecto.progreso"
+              (input)="actualizarProgreso(proyecto, $event)"
+              class="progress-slider"
+            >
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="proyecto.progreso" [style.background-color]="obtenerColorEstado(proyecto.estado)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budget Info -->
+        <div class="budget-section">
+          <div class="budget-item">
+            <span class="label">💰 Presupuesto:</span>
+            <span class="value">${{ proyecto.presupuesto }}</span>
+          </div>
+          <div class="budget-item">
+            <span class="label">✅ Pagado:</span>
+            <div class="editable-value">
+              <input 
+                type="number" 
+                [value]="proyecto.pagado"
+                (change)="actualizarPagado(proyecto, $event)"
+                class="money-input"
+                min="0"
+                [max]="proyecto.presupuesto"
+              >
+            </div>
+          </div>
+          <div class="budget-item">
+            <span class="label">⏳ Pendiente:</span>
+            <span class="value pendiente">${{ proyecto.presupuesto - proyecto.pagado }}</span>
+          </div>
+        </div>
+
+        
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="proyectos.length === 0 && !cargando">
+      <div class="empty-icon">📋</div>
+      <h3>No tienes proyectos activos</h3>
+      <p>Cuando tengas proyectos asignados aparecerán aquí</p>
+      <button class="btn-primary" routerLink="/vendedor/requerimientos">Ver Requerimientos</button>
+    </div>
+  </div>
+
+  <!-- Chat Modal -->
+  <div class="chat-overlay" *ngIf="mostrarChat" (click)="cerrarChat()">
+    <div class="chat-modal" (click)="$event.stopPropagation()">
+      <div class="chat-header">
+        <div class="chat-title">
+          <div class="vendor-avatar">👤</div>
+          <div class="chat-info">
+            <h3>Chat con {{ proyectoSeleccionado?.cliente?.nombre || 'Cliente' }}</h3>
+            <p>{{ proyectoSeleccionado?.nombre }}</p>
+          </div>
+        </div>
+        <button class="btn-close" (click)="cerrarChat()">✕</button>
+      </div>
+
+      <div class="chat-messages">
+        <div class="message" *ngFor="let mensaje of mensajes" [class.sent]="mensaje.remitente === 'vendedor'" [class.received]="mensaje.remitente === 'cliente'">
+          <div class="message-content">
+            <p>{{ mensaje.contenido }}</p>
+            <div class="message-info">
+              <span class="message-time">{{ formatearHora(mensaje.fecha) }}</span>
+              <span class="message-status" *ngIf="mensaje.remitente === 'vendedor'">{{ mensaje.leido ? '✓✓' : '✓' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input">
+        <div class="input-wrapper">
+          <input type="text" [(ngModel)]="nuevoMensaje" (keypress)="$event.key === 'Enter' && enviarMensaje()" placeholder="Escribe tu mensaje..." [disabled]="enviandoMensaje" class="message-input">
+          <button class="btn-send" (click)="enviarMensaje()" [disabled]="enviandoMensaje || !nuevoMensaje.trim()">
+            {{ enviandoMensaje ? '⏳' : '📤' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Change Modal -->
+  <div class="modal-overlay" *ngIf="mostrarModalEstado" (click)="cerrarModalEstado()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Cambiar Estado del Proyecto</h3>
+        <button class="btn-close" (click)="cerrarModalEstado()">✕</button>
+      </div>
+      <div class="modal-content">
+        <div class="project-info-mini">
+          <h4>{{ proyectoSeleccionado?.nombre }}</h4>
+          <p>Estado actual: <span class="current-status" [style.color]="obtenerColorEstado(proyectoSeleccionado?.estado || '')">{{ obtenerEtiquetaEstado(proyectoSeleccionado?.estado || '') }}</span></p>
+        </div>
+        <form (ngSubmit)="cambiarEstadoProyecto()">
+          <div class="form-group">
+            <label for="nuevoEstado">Nuevo Estado:</label>
+            <select id="nuevoEstado" [(ngModel)]="nuevoEstado" name="nuevoEstado" class="form-select">
+              <option *ngFor="let estado of estadosDisponibles" [value]="estado.valor">{{ estado.etiqueta }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="motivoCambio">Motivo del cambio (opcional):</label>
+            <textarea id="motivoCambio" [(ngModel)]="motivoCambio" name="motivoCambio" rows="3" placeholder="Describe el motivo del cambio de estado..." class="form-textarea"></textarea>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn-secondary" (click)="cerrarModalEstado()">Cancelar</button>
+            <button type="submit" class="btn-primary">Actualizar Estado</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

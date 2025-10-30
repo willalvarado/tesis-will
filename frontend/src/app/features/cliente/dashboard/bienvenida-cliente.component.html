@@ -1,0 +1,139 @@
+<div class="container">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <span class="logo">🎯 Portal Cliente</span>
+    </div>
+    
+    <nav class="menu">
+     
+      <a href="#/cliente/chat-asistente" class="nav-link">
+        <span>💬</span> Chat Asistente
+      </a>
+      <a href="#/cliente/requerimientos" class="nav-link">
+        <span>📝</span> Mis Requerimientos
+      </a>
+      <a href="#/cliente/estado-proyectos" class="nav-link">
+        <span>📊</span> Mis Proyectos
+      </a>
+      <a href="#/cliente/mi-perfil" class="nav-link">
+        <span>👤</span> Mi Perfil
+      </a>
+    </nav>
+    
+    <button class="logout" (click)="cerrarSesion()">
+      📋 Cerrar Sesión
+    </button>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+    
+  
+   
+
+    <!-- Dashboard Section -->
+    <section *ngIf="activeSection === 'dashboard'" class="section active">
+      
+      <!-- 🧡 SECCIÓN DE MARCA - Conecta Solutions -->
+      <div class="marca-header">
+        <div class="marca-logo">
+          <div class="logo-icon">⚡</div>
+          <div class="logo-text">
+            <h1>Conecta Solutions</h1>
+            <p>Plataforma de Gestión de Proyectos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 👋 BIENVENIDA PERSONALIZADA -->
+      <div class="bienvenida-card">
+        <h2>Bienvenido, {{ cliente?.nombre || 'Cliente' }}</h2>
+        <p>Conecta con expertos y haz realidad tus proyectos</p>
+      </div>
+
+      <!-- 📊 ESTADÍSTICAS DEL MES -->
+      <div class="estadisticas-mes">
+        <h3>📊 Estadísticas del Mes</h3>
+        
+        <div class="stats-grid">
+          <!-- Requerimientos Activos -->
+          <div class="stat-card stat-activos">
+            <div class="stat-icon">📝</div>
+            <div class="stat-info">
+              <p>Requerimientos Activos</p>
+              <h2>{{ requerimientosActivos }}</h2>
+            </div>
+          </div>
+
+          <!-- Proyectos en Proceso -->
+          <div class="stat-card stat-proceso">
+            <div class="stat-icon">🔄</div>
+            <div class="stat-info">
+              <p>Proyectos en Proceso</p>
+              <h2>{{ proyectosEnProceso }}</h2>
+            </div>
+          </div>
+
+          <!-- Proyectos Completados -->
+          <div class="stat-card stat-completados">
+            <div class="stat-icon">✅</div>
+            <div class="stat-info">
+              <p>Proyectos Completados</p>
+              <h2>{{ proyectosCompletados }}</h2>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 📋 RESUMEN POR ESTADOS -->
+      <div class="resumen-estados">
+        <h3>📋 Resumen de Mis Proyectos por Estado</h3>
+        
+        <div class="estados-grid">
+          <!-- Pendientes/Sin Asignar -->
+<div class="estado-item estado-pendiente">
+  <div class="estado-icon">⏳</div>
+  <div class="estado-info">
+    <span class="estado-nombre">Sin Asignar</span>
+    <span class="estado-cantidad">{{ resumenEstados.sin_asignar }}</span>
+  </div>
+</div>
+
+          <!-- En Proceso -->
+          <div class="estado-item estado-proceso">
+            <div class="estado-icon">🔄</div>
+            <div class="estado-info">
+              <span class="estado-nombre">En Proceso</span>
+              <span class="estado-cantidad">{{ resumenEstados.en_proceso }}</span>
+            </div>
+          </div>
+
+          <!-- Completados -->
+          <div class="estado-item estado-completado">
+            <div class="estado-icon">✅</div>
+            <div class="estado-info">
+              <span class="estado-nombre">Completados</span>
+              <span class="estado-cantidad">{{ resumenEstados.completados }}</span>
+            </div>
+          </div>
+
+          <!-- Cancelados -->
+          <div class="estado-item estado-cancelado">
+            <div class="estado-icon">❌</div>
+            <div class="estado-info">
+              <span class="estado-nombre">Cancelados</span>
+              <span class="estado-cantidad">{{ resumenEstados.cancelados }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Total Invertido -->
+        <div class="total-proyectos">
+          <span>Total Invertido:</span>
+          <strong>${{ totalInvertido.toFixed(2) }}</strong>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>

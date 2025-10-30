@@ -1,0 +1,81 @@
+<div class="especialidades-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="logo-circle">
+      <span>⚙️</span>
+    </div>
+    <h1>Categorías internacionales (CPC) para especialidades TI</h1>
+    <p class="subtitle">Selecciona las especialidades que podrían relacionarse con tu oferta o requerimiento</p>
+  </div>
+
+  <!-- Categories Grid -->
+  <div class="categories-grid">
+    <div *ngFor="let categoria of categorias" class="category-card">
+      <div class="category-header">
+        <h3>{{ categoria.titulo }}</h3>
+        <div class="category-icon">
+          <span *ngIf="categoria.titulo.includes('Consultoría')">🎯</span>
+          <span *ngIf="categoria.titulo.includes('Desarrollo')">💻</span>
+          <span *ngIf="categoria.titulo.includes('Tratamiento')">☁️</span>
+          <span *ngIf="categoria.titulo.includes('Otros')">🔧</span>
+        </div>
+      </div>
+
+      <div class="options-grid">
+        <div *ngFor="let opcion of categoria.opciones" class="option-item">
+          <input 
+            type="checkbox" 
+            [id]="opcion.codigo" 
+            [checked]="especialidadesSeleccionadas.includes(opcion.codigo)"
+            (change)="toggleSeleccion(opcion.codigo)"
+            class="option-checkbox"
+          />
+          <label [for]="opcion.codigo" class="option-label">
+            <div class="checkbox-custom">
+              <i class="check-icon">✓</i>
+            </div>
+            <div class="option-content">
+              <span class="option-name">{{ opcion.nombre }}</span>
+              <span class="option-code">{{ opcion.codigo }}</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Selected Count -->
+  <div *ngIf="especialidadesSeleccionadas.length > 0" class="selected-count">
+    <div class="count-badge">
+      <i class="count-icon">✅</i>
+      <span class="count-text">{{ especialidadesSeleccionadas.length }} especialidad(es) seleccionada(s)</span>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button 
+      (click)="finalizarRegistro()" 
+      [disabled]="especialidadesSeleccionadas.length === 0"
+      class="btn-continue"
+    >
+      <span class="btn-text">Continuar con el registro</span>
+      <span class="btn-arrow">→</span>
+    </button>
+    
+    <button 
+      onclick="history.back()" 
+      class="btn-back"
+    >
+      ← Volver al registro
+    </button>
+  </div>
+
+  <!-- Floating Background Elements -->
+  <div class="bg-decoration">
+    <div class="floating-shape shape-1"></div>
+    <div class="floating-shape shape-2"></div>
+    <div class="floating-shape shape-3"></div>
+    <div class="floating-shape shape-4"></div>
+  </div>
+</div>

@@ -1,0 +1,83 @@
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="title-section">
+      <h1>📋 Mis Requerimientos</h1>
+      <p class="subtitle">Seguimiento de tus proyectos solicitados</p>
+    </div>
+    
+    <div class="header-buttons">
+      <button class="btn-back" [routerLink]="['/cliente/bienvenida']">
+        ← Volver al Dashboard
+      </button>
+      <button class="btn-nuevo" [routerLink]="['/cliente/chat-asistente']">
+        💬 Nuevo Requerimiento
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="cargando" class="loading-container">
+    <div class="spinner"></div>
+    <p>Cargando tus requerimientos...</p>
+  </div>
+
+  <!-- Requerimientos List -->
+  <div *ngIf="!cargando" class="requerimientos-grid">
+    <div *ngFor="let req of datos" class="requerimiento-card">
+      <div class="card-header">
+        <div class="estado-badge" [ngClass]="'estado-' + req.estado">
+          {{ getEstadoIcon(req.estado) }} {{ getEstadoTexto(req.estado) }}
+        </div>
+        <div class="fecha">
+          {{ formatearFecha(req.fecha_creacion) }}
+        </div>
+      </div>
+      
+      <div class="card-body">
+        <h3 class="titulo">{{ req.titulo || 'Nuevo requerimiento' }}</h3>
+        <p class="mensaje">{{ req.mensaje }}</p>
+        
+        <div class="especialidad-tag" *ngIf="req.especialidad">
+          🔧 {{ req.especialidad }}
+        </div>
+      </div>
+      
+      <div class="card-footer" *ngIf="req.estado === 'asignado'">
+        <div class="mensaje-asignado">
+          ✅ ¡Un vendedor aceptó tu proyecto! Ve a "Estado Proyectos" para más detalles.
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="datos.length === 0" class="empty-state">
+      <div class="empty-icon">📝</div>
+      <h3>No tienes requerimientos aún</h3>
+      <p>Crea tu primer requerimiento usando nuestro asistente virtual</p>
+      <button class="btn-primary" [routerLink]="['/cliente/chat-asistente']">
+        🚀 Crear mi primer requerimiento
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <div *ngIf="!cargando && datos.length > 0" class="stats-section">
+    <div class="stat-card">
+      <div class="stat-number">{{ datos.length }}</div>
+      <div class="stat-label">Total requerimientos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ getCountByEstado('pendiente') }}</div>
+      <div class="stat-label">Pendientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ getCountByEstado('asignado') }}</div>
+      <div class="stat-label">Asignados</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ getCountByEstado('completado') }}</div>
+      <div class="stat-label">Completados</div>
+    </div>
+  </div>
+</div>

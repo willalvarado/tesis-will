@@ -1,0 +1,86 @@
+<div class="chat-container">
+  <!-- Header -->
+  <div class="chat-header">
+    <div class="assistant-info">
+      <div class="avatar">🤖</div>
+      <div class="info">
+        <h3>Asistente Virtual con IA</h3>
+        <p>Powered by OpenAI - Te ayudo a definir tu proyecto paso a paso</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chat Messages Area -->
+  <div class="chat-messages" #chatMessages>
+    
+    <!-- Mensajes del chat -->
+    <div 
+      *ngFor="let mensaje of mensajes" 
+      [class.assistant-message]="mensaje.role === 'assistant'"
+      [class.user-message]="mensaje.role === 'user'"
+      class="message"
+    >
+      <!-- Mensaje del asistente -->
+      <ng-container *ngIf="mensaje.role === 'assistant'">
+        <div class="avatar">🤖</div>
+        <div class="message-content">
+          <div *ngIf="!mensaje.mostrarLoader">
+            <p *ngFor="let linea of mensaje.content.split('\n')" [innerHTML]="linea || '&nbsp;'"></p>
+            
+            <!-- Sugerencias iniciales -->
+            <div class="suggestions" *ngIf="mensajes.length === 1">
+              <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para delivery de comida')">
+                📱 "Necesito una aplicación móvil para delivery"
+              </div>
+              <div class="suggestion" (click)="usarSugerencia('Quiero un sitio web con sistema de pagos')">
+                🌐 "Quiero un sitio web con pagos"
+              </div>
+              <div class="suggestion" (click)="usarSugerencia('Necesito un sistema de gestión empresarial')">
+                📊 "Necesito un sistema de gestión"
+              </div>
+            </div>
+          </div>
+          
+          <!-- Loader mientras procesa -->
+          <div *ngIf="mensaje.mostrarLoader" class="processing-status">
+            <div class="loader"></div>
+            <span>Procesando tu mensaje...</span>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Mensaje del usuario -->
+      <ng-container *ngIf="mensaje.role === 'user'">
+        <div class="message-content">
+          <p>{{ mensaje.content }}</p>
+        </div>
+        <div class="avatar user-avatar">👤</div>
+      </ng-container>
+    </div>
+
+  </div>
+
+  <!-- Chat Input -->
+  <div class="chat-input-container">
+    <div class="chat-form">
+      <div class="input-group">
+        <textarea 
+          [(ngModel)]="mensajeUsuario"
+          placeholder="Escribe tu mensaje aquí..."
+          (keydown)="onEnterPress($event)"
+          [disabled]="enviando || conversacionFinalizada"
+          rows="1"
+        ></textarea>
+        <button 
+          type="button"
+          (click)="enviarMensaje()"
+          [disabled]="!mensajeUsuario.trim() || enviando || conversacionFinalizada"
+          class="send-button"
+        >
+          <span *ngIf="!enviando">📤</span>
+          <span *ngIf="enviando" class="spinner">⏳</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
