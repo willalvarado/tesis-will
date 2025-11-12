@@ -17,4 +17,4 @@ class AnalisisIA(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    proyecto = relationship("Proyecto", back_populates="analisis")
+    proyecto = relationship("Proyecto", backref="analisis_list")

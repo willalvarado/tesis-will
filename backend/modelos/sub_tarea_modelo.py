@@ -38,5 +38,5 @@ class SubTarea(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    proyecto = relationship("Proyecto", back_populates="sub_tareas", lazy="joined")
+    proyecto = relationship("Proyecto", backref="sub_tareas_list")
     vendedor = relationship("Vendedor")

@@ -59,12 +59,12 @@ class Proyecto(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # 🔥 RELACIONES ACTUALIZADAS
-    requerimiento = relationship("Requerimiento", backref="proyecto")
-    cliente = relationship("UsuarioDB", foreign_keys=[cliente_id], backref="proyectos_como_cliente")
-    vendedor = relationship("Vendedor", foreign_keys=[vendedor_id], backref="proyectos_como_vendedor")
-    
-    # 🆕 NUEVAS RELACIONES
-    sub_tareas = relationship("SubTarea", back_populates="proyecto", cascade="all, delete-orphan")
-    analisis = relationship("AnalisisIA", back_populates="proyecto", cascade="all, delete-orphan")
-    conversaciones = relationship("ConversacionChat", back_populates="proyecto", cascade="all, delete-orphan")
+requerimiento = relationship("Requerimiento", backref="proyecto")
+cliente = relationship("UsuarioDB", foreign_keys="Proyecto.cliente_id", backref="proyectos_como_cliente")
+vendedor = relationship("Vendedor", foreign_keys="Proyecto.vendedor_id", backref="proyectos_como_vendedor")
+
+# 🆕 NUEVAS RELACIONES - SIN back_populates para evitar errores circulares
+sub_tareas = relationship("SubTarea", cascade="all, delete-orphan", lazy="dynamic")
+analisis = relationship("AnalisisIA", cascade="all, delete-orphan", lazy="dynamic")
+conversaciones = relationship("ConversacionChat", cascade="all, delete-orphan", lazy="dynamic")
     

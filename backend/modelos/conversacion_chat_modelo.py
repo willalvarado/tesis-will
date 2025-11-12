@@ -23,10 +23,8 @@ class ConversacionChat(Base):
     participante_id = Column(Integer, ForeignKey("vendedores.id", ondelete="SET NULL"))
     mensaje = Column(Text, nullable=False)
     emisor = Column(String(20), nullable=False)
-    metadatos = Column(JSON)  # 🔥 Cambiar 'metadata' por 'metadatos'
+    metadatos = Column(JSON)
     timestamp = Column(DateTime, default=datetime.utcnow)
     
-    # Relationships
-proyecto = relationship("Proyecto", back_populates="conversaciones")
-cliente = relationship("UsuarioDB")
-participante = relationship("Vendedor")
+    # 🔥 RELATIONSHIPS - AGREGAR back_populates
+    # Nota: Usamos strings para evitar imports circulares
