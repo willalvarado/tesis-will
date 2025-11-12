@@ -53,7 +53,7 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
             
             <div class="info">
               <span class="especialidad">{{ req.especialidad }}</span>
-              <span class="cliente">👤 Cliente: {{ req.cliente_id }}</span>
+              <span class="cliente">👤 Cliente: {{ req.cliente_nombre || 'Cliente #' + req.cliente_id }}</span>
             </div>
             
             <div class="actions">
@@ -92,7 +92,7 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
             
             <div class="info">
               <span class="especialidad">{{ req.especialidad }}</span>
-              <span class="cliente">👤 Cliente: {{ req.cliente_id }}</span>
+              <span class="cliente">👤 Cliente: {{ req.cliente_nombre || 'Cliente #' + req.cliente_id }}</span>
             </div>
             
             <div class="actions">
@@ -525,14 +525,14 @@ export class RequerimientoComponent implements OnInit {
           `Título: ${requerimiento.titulo}\n` +
           `Descripción: ${requerimiento.mensaje}\n` +
           `Especialidad: ${requerimiento.especialidad}\n` +
-          `Cliente: ${requerimiento.cliente_id}`);
+          `Cliente: ${requerimiento.cliente_nombre || 'Cliente #' + requerimiento.cliente_id}`);
   }
 
   verProyecto(requerimiento: Requerimiento): void {
     alert(`Proyecto Activo:\n\n` +
           `${requerimiento.titulo}\n\n` +
           `Estado: En progreso\n` +
-          `Cliente: ${requerimiento.cliente_id}\n` +
+          `Cliente: ${requerimiento.cliente_nombre || 'Cliente #' + requerimiento.cliente_id}\n` +
           `Especialidad: ${requerimiento.especialidad}`);
   }
 

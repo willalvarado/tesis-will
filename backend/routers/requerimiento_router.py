@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from database import get_db
 from modelos.requerimiento_model import Requerimiento, EstadoRequerimiento, EspecialidadEnum
 from modelos.proyecto_modelo import Proyecto, EstadoProyecto
+from modelos.usuario_modelo import UsuarioDB
+from Vendedores.vendedor_modelo import Vendedor
 from pydantic import BaseModel
 from datetime import datetime
 from services.openai_service import convertir_codigo_a_nombre
@@ -53,10 +55,13 @@ class RequerimientoCreate(BaseModel):
     mensaje: str
     cliente_id: int
 
+# 🔥 RESPONSE MEJORADO CON NOMBRES
 class RequerimientoResponse(BaseModel):
     id: int
     cliente_id: int
+    cliente_nombre: Optional[str] = None  # 🔥 NUEVO
     vendedor_id: int | None
+    vendedor_nombre: Optional[str] = None  # 🔥 NUEVO
     titulo: str
     mensaje: str
     descripcion: str | None
@@ -72,17 +77,47 @@ class RequerimientoUpdate(BaseModel):
     vendedor_id: int | None = None
 
 
+# 🔥 FUNCIÓN HELPER PARA AGREGAR NOMBRES
+def agregar_nombres_a_requerimientos(requerimientos: List[Requerimiento], db: Session) -> List[dict]:
+    """
+    Agrega los nombres de cliente y vendedor a los requerimientos
+    """
+    resultado = []
+    for req in requerimientos:
+        # Obtener nombre del cliente
+        cliente = db.query(UsuarioDB).filter(UsuarioDB.id == req.cliente_id).first()
+        cliente_nombre = cliente.nombre if cliente else f"Cliente #{req.cliente_id}"
+        
+        # Obtener nombre del vendedor (si existe)
+        vendedor_nombre = None
+        if req.vendedor_id:
+            vendedor = db.query(Vendedor).filter(Vendedor.id == req.vendedor_id).first()
+            vendedor_nombre = vendedor.nombre if vendedor else f"Vendedor #{req.vendedor_id}"
+        
+        # Crear diccionario con toda la info
+        req_dict = {
+            "id": req.id,
+            "cliente_id": req.cliente_id,
+            "cliente_nombre": cliente_nombre,  # 🔥 NUEVO
+            "vendedor_id": req.vendedor_id,
+            "vendedor_nombre": vendedor_nombre,  # 🔥 NUEVO
+            "titulo": req.titulo,
+            "mensaje": req.mensaje,
+            "descripcion": req.descripcion,
+            "especialidad": req.especialidad.value,
+            "estado": req.estado.value,
+            "fecha_creacion": req.fecha_creacion
+        }
+        resultado.append(req_dict)
+    
+    return resultado
+
+
 # Endpoints
 
 @router.post("/crear", response_model=RequerimientoResponse)
 def crear_requerimiento(req: RequerimientoCreate, db: Session = Depends(get_db)):
     """Crea un nuevo requerimiento"""
-    
-    # Por defecto, usar "Otro"
-    especialidad_nombre = "Otro"
-    
-    # Si el mensaje contiene un código de especialidad, extraerlo
-    # (esto lo mejoraremos con OpenAI en el siguiente paso)
     
     nuevo_req = Requerimiento(
         cliente_id=req.cliente_id,
@@ -98,15 +133,18 @@ def crear_requerimiento(req: RequerimientoCreate, db: Session = Depends(get_db))
     return nuevo_req
 
 
-@router.get("/cliente/{cliente_id}", response_model=List[RequerimientoResponse])
+@router.get("/cliente/{cliente_id}")
 def obtener_requerimientos_por_cliente(cliente_id: int, db: Session = Depends(get_db)):
     """Obtiene los requerimientos creados por un cliente específico"""
-    return db.query(Requerimiento).filter(
+    requerimientos = db.query(Requerimiento).filter(
         Requerimiento.cliente_id == cliente_id
     ).order_by(Requerimiento.fecha_creacion.desc()).all()
+    
+    # 🔥 Agregar nombres
+    return agregar_nombres_a_requerimientos(requerimientos, db)
 
 
-@router.get("/vendedor/disponibles", response_model=List[RequerimientoResponse])
+@router.get("/vendedor/disponibles")
 def obtener_requerimientos_disponibles(
     especialidad: str | None = None,
     db: Session = Depends(get_db)
@@ -118,13 +156,11 @@ def obtener_requerimientos_disponibles(
     )
     
     if especialidad:
-        # 🔥 Convertir nombre amigable a ENUM
         codigo_enum = nombre_amigable_a_enum(especialidad)
         
         print(f"🔍 Especialidad recibida: {especialidad}")
         print(f"🔍 Código ENUM: {codigo_enum}")
         
-        # Verificar si el código existe en el ENUM
         if codigo_enum in EspecialidadEnum.__members__:
             enum_especialidad = EspecialidadEnum[codigo_enum]
             query = query.filter(Requerimiento.especialidad == enum_especialidad)
@@ -132,11 +168,14 @@ def obtener_requerimientos_disponibles(
         else:
             print(f"⚠️ Código ENUM no encontrado: {codigo_enum}")
     
-    return query.order_by(Requerimiento.fecha_creacion.desc()).all()
+    requerimientos = query.order_by(Requerimiento.fecha_creacion.desc()).all()
+    
+    # 🔥 Agregar nombres
+    return agregar_nombres_a_requerimientos(requerimientos, db)
 
 
 # 🔥 ENDPOINT CON FILTRO MEJORADO
-@router.get("/vendedores/disponibles", response_model=List[RequerimientoResponse])
+@router.get("/vendedores/disponibles")
 def obtener_requerimientos_disponibles_alias(
     especialidad: str | None = None,
     db: Session = Depends(get_db)
@@ -151,12 +190,10 @@ def obtener_requerimientos_disponibles_alias(
     )
     
     if especialidad:
-        # 🔥 Convertir especialidades (pueden venir separadas por coma)
         especialidades_vendedor = [esp.strip() for esp in especialidad.split(',')]
         
         print(f"🔍 Especialidades recibidas del vendedor: {especialidades_vendedor}")
         
-        # Convertir a códigos ENUM
         codigos_enum = []
         for esp in especialidades_vendedor:
             codigo = nombre_amigable_a_enum(esp)
@@ -165,7 +202,6 @@ def obtener_requerimientos_disponibles_alias(
         
         print(f"🔍 Códigos ENUM a filtrar: {codigos_enum}")
         
-        # Filtrar por los códigos ENUM
         if codigos_enum:
             enums = [EspecialidadEnum[codigo] for codigo in codigos_enum]
             query = query.filter(Requerimiento.especialidad.in_(enums))
@@ -173,18 +209,22 @@ def obtener_requerimientos_disponibles_alias(
         else:
             print(f"⚠️ No se encontraron ENUMs válidos para filtrar")
     
-    resultados = query.order_by(Requerimiento.fecha_creacion.desc()).all()
-    print(f"📊 Total requerimientos filtrados: {len(resultados)}")
+    requerimientos = query.order_by(Requerimiento.fecha_creacion.desc()).all()
+    print(f"📊 Total requerimientos filtrados: {len(requerimientos)}")
     
-    return resultados
+    # 🔥 Agregar nombres
+    return agregar_nombres_a_requerimientos(requerimientos, db)
 
 
-@router.get("/vendedor/{vendedor_id}", response_model=List[RequerimientoResponse])
+@router.get("/vendedor/{vendedor_id}")
 def obtener_requerimientos_por_vendedor(vendedor_id: int, db: Session = Depends(get_db)):
     """Obtiene los requerimientos asignados a un vendedor"""
-    return db.query(Requerimiento).filter(
+    requerimientos = db.query(Requerimiento).filter(
         Requerimiento.vendedor_id == vendedor_id
     ).order_by(Requerimiento.fecha_creacion.desc()).all()
+    
+    # 🔥 Agregar nombres
+    return agregar_nombres_a_requerimientos(requerimientos, db)
 
 
 @router.put("/{requerimiento_id}/asignar")
@@ -197,31 +237,28 @@ def asignar_requerimiento(
     Asigna un requerimiento a un vendedor y crea automáticamente un proyecto.
     Este endpoint ahora crea el proyecto en la tabla proyectos.
     """
-    # Buscar el requerimiento
     req = db.query(Requerimiento).filter(Requerimiento.id == requerimiento_id).first()
     if not req:
         raise HTTPException(status_code=404, detail="Requerimiento no encontrado")
     if req.vendedor_id:
         raise HTTPException(status_code=400, detail="Requerimiento ya asignado")
 
-    # Asignar vendedor y cambiar estado
     req.vendedor_id = vendedor_id
     req.estado = EstadoRequerimiento.ASIGNADO
     
-    # === NUEVO: Crear proyecto automáticamente ===
     nuevo_proyecto = Proyecto(
         requerimiento_id=req.id,
         cliente_id=req.cliente_id,
         vendedor_id=vendedor_id,
         titulo=req.titulo,
         descripcion=req.descripcion or req.mensaje,
-        especialidad=req.especialidad.value,  # Convertir enum a string
+        especialidad=req.especialidad.value,
         estado=EstadoProyecto.ASIGNADO,
         progreso=0,
         presupuesto=0.0,
         pagado=0.0,
         fecha_inicio=datetime.utcnow(),
-        fecha_estimada=None  # El vendedor lo puede actualizar después
+        fecha_estimada=None
     )
     
     db.add(nuevo_proyecto)
@@ -276,14 +313,11 @@ def actualizar_requerimiento_con_ia(
     if not req:
         raise HTTPException(status_code=404, detail="Requerimiento no encontrado")
     
-    # Convertir código a nombre de especialidad
     especialidad_nombre = convertir_codigo_a_nombre(data.especialidad_codigo)
     
-    # Actualizar datos
     req.titulo = data.titulo
     req.descripcion = data.descripcion
     
-    # Buscar el enum correspondiente
     try:
         for esp in EspecialidadEnum:
             if esp.value == especialidad_nombre:

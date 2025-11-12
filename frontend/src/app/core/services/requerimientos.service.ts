@@ -17,12 +17,14 @@ export type EstadoReq =
 export interface Requerimiento {
   id: number;
   cliente_id: number;
-  vendedor_id: number | null;
+  cliente_nombre?: string;      // 🔥 NUEVO
+  vendedor_id?: number;
+  vendedor_nombre?: string;     // 🔥 NUEVO
   titulo: string;
   mensaje: string;
-  descripcion: string | null;
+  descripcion?: string;
   especialidad: string;
-  estado: EstadoReq;
+  estado: string;
   fecha_creacion: string;
 }
 
