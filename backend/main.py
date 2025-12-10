@@ -9,10 +9,9 @@ from routers.requerimiento_router import router as requerimiento_router
 from routers.proyecto_router import router as proyecto_router
 from Usuarios.usuario_router import usuario_router
 from Vendedores.vendedor_router import vendedor_router
-from routers.chat_router import router as chat_router  # Chat cliente-vendedor (mantener)
+from routers.chat_router import router as chat_router  # ✅ AGREGAR ESTA LÍNEA
 from routers.archivo_router import router as archivo_router
-# from routers.openai_router import router as openai_router  # 🔥 COMENTADO - Reemplazado por chat_analisis
-from routers.chat_analisis_router import router as chat_analisis_router  # 🆕 NUEVO SISTEMA
+from routers.chat_analisis_router import router as chat_analisis_router
 from routers.subtarea_router import router as subtarea_router
 
 # Crear instancia de FastAPI
@@ -25,7 +24,7 @@ app = FastAPI(
 # Permitir peticiones desde frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cambiar por URL del frontend en producción
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,9 +41,8 @@ app.include_router(vendedor_router, prefix="/vendedores", tags=["Vendedores"])
 app.include_router(requerimiento_router)
 app.include_router(proyecto_router)
 app.include_router(archivo_router)
-app.include_router(chat_router)  # Chat 1:1 cliente-vendedor
-# app.include_router(openai_router)  # 🔥 DESACTIVADO - Sistema viejo
-app.include_router(chat_analisis_router)  # 🆕 Sistema nuevo de análisis con IA
+app.include_router(chat_router)  # ✅ AGREGAR ESTA LÍNEA
+app.include_router(chat_analisis_router)
 app.include_router(subtarea_router)
 
 # Ruta de prueba

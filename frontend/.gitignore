@@ -1,5 +1,18 @@
 # See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
 
+# ============================================
+# ARCHIVOS DE ENTORNO - NUNCA SUBIR
+# ============================================
+.env
+*.env
+.env.local
+.env.production
+backend/.env
+frontend/.env
+
+# ============================================
+# FRONTEND - Angular
+# ============================================
 # Compiled output
 /dist
 /tmp
@@ -10,8 +23,41 @@
 /node_modules
 npm-debug.log
 yarn-error.log
+package-lock.json
 
+# Angular
+/.angular/cache
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# ============================================
+# BACKEND - Python
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+ENV/
+env/
+*.db
+*.sqlite
+*.sqlite3
+
+# ============================================
 # IDEs and editors
+# ============================================
 .idea/
 .project
 .classpath
@@ -28,15 +74,8 @@ yarn-error.log
 !.vscode/extensions.json
 .history/*
 
-# Miscellaneous
-/.angular/cache
-.sass-cache/
-/connect.lock
-/coverage
-/libpeerconnection.log
-testem.log
-/typings
-
+# ============================================
 # System files
+# ============================================
 .DS_Store
 Thumbs.db

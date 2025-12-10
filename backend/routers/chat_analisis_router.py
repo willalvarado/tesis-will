@@ -13,7 +13,7 @@ from services.chat_analisis_service import (
     ESPECIALIDADES_DETALLADAS
 )
 from modelos.proyecto_modelo import Proyecto, FaseProyecto
-from modelos.sub_tarea_modelo import SubTarea, PrioridadSubTarea, EstadoSubTarea
+from modelos.proyecto_modelo import SubTarea, EstadoSubTarea
 from modelos.conversacion_chat_modelo import ConversacionChat, EmisorMensaje, TipoConversacion
 from modelos.analisis_ia_modelo import AnalisisIA
 
@@ -31,7 +31,7 @@ class MensajeChat(BaseModel):
     contenido: str
 
 class HistorialMensaje(BaseModel):
-    role: str  # "user" o "assistant"
+    role: str
     content: str
 
 class IniciarAnalisisRequest(BaseModel):
@@ -57,18 +57,8 @@ def iniciar_analisis(
 ):
     """
     Inicia un nuevo análisis de proyecto.
-    
-    1. Crea el proyecto en fase ANÁLISIS
-    2. Guarda el primer mensaje del cliente
-    3. Genera la primera respuesta de la IA
-    
-    Returns:
-        - proyecto_id: ID del proyecto creado
-        - respuesta_ia: Primera pregunta/respuesta de la IA
-        - finalizado: False (siempre al inicio)
     """
     try:
-        # 1. Crear proyecto en fase de ANÁLISIS
         nuevo_proyecto = Proyecto(
             cliente_id=data.cliente_id,
             titulo="Proyecto en análisis...",
@@ -83,7 +73,6 @@ def iniciar_analisis(
         
         print(f"✅ Proyecto {nuevo_proyecto.id} creado en fase ANÁLISIS")
         
-        # 2. Guardar mensaje inicial del cliente
         mensaje_cliente = ConversacionChat(
             proyecto_id=nuevo_proyecto.id,
             cliente_id=data.cliente_id,
@@ -94,18 +83,15 @@ def iniciar_analisis(
         db.add(mensaje_cliente)
         db.commit()
         
-        # 3. Crear historial para OpenAI
         historial = [
             {"role": "user", "content": data.mensaje_inicial}
         ]
         
-        # 4. Obtener respuesta de la IA
         resultado = chat_analisis_proyecto(historial, data.cliente_id)
         
         if not resultado["exito"]:
             raise HTTPException(status_code=500, detail=resultado.get("error", "Error en análisis"))
         
-        # 5. Guardar respuesta de la IA
         mensaje_ia = ConversacionChat(
             proyecto_id=nuevo_proyecto.id,
             cliente_id=data.cliente_id,
@@ -143,20 +129,8 @@ def continuar_analisis(
 ):
     """
     Continúa el análisis de un proyecto existente.
-    
-    1. Carga el historial de mensajes previos
-    2. Agrega el nuevo mensaje del cliente
-    3. Obtiene respuesta de la IA
-    4. Si finalizó, crea sub-tareas y análisis
-    
-    Returns:
-        - respuesta_ia: Respuesta de la IA
-        - finalizado: True si el análisis terminó
-        - proyecto: Datos completos del proyecto (si finalizó)
-        - resumen: Resumen ejecutivo (si finalizó)
     """
     try:
-        # 1. Verificar que el proyecto existe y está en ANÁLISIS
         proyecto = db.query(Proyecto).filter(Proyecto.id == data.proyecto_id).first()
         if not proyecto:
             raise HTTPException(status_code=404, detail="Proyecto no encontrado")
@@ -164,22 +138,18 @@ def continuar_analisis(
         if proyecto.fase != FaseProyecto.ANALISIS:
             raise HTTPException(status_code=400, detail="El proyecto ya no está en fase de análisis")
         
-        # 2. Cargar historial de conversación
         mensajes_db = db.query(ConversacionChat).filter(
             ConversacionChat.proyecto_id == data.proyecto_id,
             ConversacionChat.tipo == TipoConversacion.ANALISIS
         ).order_by(ConversacionChat.timestamp).all()
         
-        # Convertir a formato OpenAI
         historial = []
         for msg in mensajes_db:
             role = "user" if msg.emisor == EmisorMensaje.CLIENTE else "assistant"
             historial.append({"role": role, "content": msg.mensaje})
         
-        # 3. Agregar nuevo mensaje del cliente
         historial.append({"role": "user", "content": data.mensaje})
         
-        # Guardar mensaje del cliente
         mensaje_cliente = ConversacionChat(
             proyecto_id=proyecto.id,
             cliente_id=proyecto.cliente_id,
@@ -188,17 +158,14 @@ def continuar_analisis(
             emisor=EmisorMensaje.CLIENTE
         )
         db.add(mensaje_cliente)
-        db.commit()
         
         print(f"💬 Continuando análisis - {len(historial)} mensajes en historial")
         
-        # 4. Obtener respuesta de la IA
         resultado = chat_analisis_proyecto(historial, proyecto.cliente_id)
         
         if not resultado["exito"]:
             raise HTTPException(status_code=500, detail=resultado.get("error"))
         
-        # 5. Guardar respuesta de la IA
         mensaje_ia = ConversacionChat(
             proyecto_id=proyecto.id,
             cliente_id=proyecto.cliente_id,
@@ -212,11 +179,10 @@ def continuar_analisis(
         )
         db.add(mensaje_ia)
         
-        # 6. Si finalizó, crear sub-tareas y análisis
+        # Si finalizó, crear sub-tareas y análisis
         if resultado.get("finalizado"):
             proyecto_data = resultado["proyecto"]
             
-            # Refinar sub-tareas
             refinado = refinar_subtareas(proyecto_data)
             if not refinado["exito"]:
                 raise HTTPException(status_code=500, detail="Error refinando sub-tareas")
@@ -230,7 +196,7 @@ def continuar_analisis(
             proyecto.criterios_aceptacion = proyecto_data["criterios_aceptacion"]
             proyecto.presupuesto = float(proyecto_data["presupuesto_estimado"])
             proyecto.total_subtareas = len(proyecto_data["subtareas"])
-            proyecto.fase = FaseProyecto.ANALISIS  # Aún no se publica
+            proyecto.fase = FaseProyecto.ANALISIS
             
             # Crear análisis IA
             analisis = AnalisisIA(
@@ -244,16 +210,22 @@ def continuar_analisis(
             )
             db.add(analisis)
             
-            # Crear sub-tareas
-            for tarea_data in proyecto_data["subtareas"]:
+            # Crear sub-tareas con códigos únicos
+            for i, tarea_data in enumerate(proyecto_data["subtareas"]):
+                prioridad = tarea_data.get("prioridad", "MEDIA").upper()
+                if prioridad not in ["ALTA", "MEDIA", "BAJA"]:
+                    prioridad = "MEDIA"
+                
+                codigo_unico = f"P{proyecto.id}-TASK-{(i+1):03d}"
+                
                 subtarea = SubTarea(
                     proyecto_id=proyecto.id,
-                    codigo=tarea_data["codigo"],
+                    codigo=codigo_unico,
                     titulo=tarea_data["titulo"],
                     descripcion=tarea_data["descripcion"],
                     especialidad=tarea_data["especialidad"],
                     estado=EstadoSubTarea.PENDIENTE,
-                    prioridad=PrioridadSubTarea[tarea_data["prioridad"]],
+                    prioridad=prioridad,
                     estimacion_horas=tarea_data["estimacion_horas"]
                 )
                 db.add(subtarea)
@@ -263,7 +235,6 @@ def continuar_analisis(
             
             print(f"✅ Análisis completado - {len(proyecto_data['subtareas'])} sub-tareas creadas")
             
-            # Generar resumen
             resumen = generar_resumen_ejecutivo(proyecto_data)
             
             return {
@@ -277,7 +248,6 @@ def continuar_analisis(
             }
         
         else:
-            # No finalizó, continuar conversación
             db.commit()
             
             return {
@@ -301,9 +271,7 @@ def publicar_proyecto(
     db: Session = Depends(get_db)
 ):
     """
-    Publica un proyecto analizado para que los vendedores puedan ver las sub-tareas.
-    
-    Cambia la fase de ANÁLISIS → PUBLICADO
+    Publica un proyecto analizado.
     """
     try:
         proyecto = db.query(Proyecto).filter(Proyecto.id == data.proyecto_id).first()
@@ -314,22 +282,21 @@ def publicar_proyecto(
         if proyecto.fase != FaseProyecto.ANALISIS:
             raise HTTPException(status_code=400, detail="El proyecto no está en fase de análisis")
         
-        # Verificar que tenga sub-tareas
-        subtareas = db.query(SubTarea).filter(SubTarea.proyecto_id == proyecto.id).count()
-        if subtareas == 0:
+        subtareas_count = db.query(SubTarea).filter(SubTarea.proyecto_id == proyecto.id).count()
+        if subtareas_count == 0:
             raise HTTPException(status_code=400, detail="El proyecto no tiene sub-tareas")
         
-        # Cambiar fase
+        proyecto.total_subtareas = subtareas_count
         proyecto.fase = FaseProyecto.PUBLICADO
         db.commit()
         
-        print(f"📢 Proyecto {proyecto.id} PUBLICADO - {subtareas} sub-tareas disponibles")
+        print(f"📢 Proyecto {proyecto.id} PUBLICADO - {subtareas_count} sub-tareas disponibles")
         
         return {
             "exito": True,
             "mensaje": "Proyecto publicado exitosamente",
             "proyecto_id": proyecto.id,
-            "subtareas_publicadas": subtareas
+            "subtareas_publicadas": subtareas_count
         }
         
     except HTTPException:
@@ -346,7 +313,7 @@ def obtener_historial_conversacion(
     db: Session = Depends(get_db)
 ):
     """
-    Obtiene todo el historial de conversación de un proyecto.
+    Obtiene todo el historial de conversación.
     """
     try:
         mensajes = db.query(ConversacionChat).filter(

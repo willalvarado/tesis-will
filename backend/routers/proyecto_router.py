@@ -33,11 +33,12 @@ class VendedorInfo(BaseModel):
         from_attributes = True
 
 # Schema modificado con información de cliente y vendedor
+# Schema modificado con información de cliente y vendedor
 class ProyectoResponse(BaseModel):
     id: int
-    requerimiento_id: int
+    requerimiento_id: int | None = None  # 🔥 OPCIONAL
     cliente_id: int
-    vendedor_id: int
+    vendedor_id: int | None = None  # 🔥 OPCIONAL
     titulo: str
     descripcion: str | None
     especialidad: str
@@ -50,6 +51,13 @@ class ProyectoResponse(BaseModel):
     fecha_completado: datetime | None
     created_at: datetime
     updated_at: datetime
+    
+    # 🆕 CAMPOS NUEVOS (todos opcionales)
+    total_subtareas: int | None = None
+    subtareas_completadas: int | None = None
+    fase: str | None = None
+    historia_usuario: str | None = None
+    
     # NUEVO: Información del cliente y vendedor
     cliente: ClienteInfo | None = None
     vendedor: VendedorInfo | None = None
@@ -68,28 +76,33 @@ class ProyectoUpdate(BaseModel):
 
 @router.get("/cliente/{cliente_id}", response_model=List[ProyectoResponse])
 def obtener_proyectos_cliente(cliente_id: int, db: Session = Depends(get_db)):
-    """Obtiene todos los proyectos de un cliente CON nombre del vendedor"""
-    # MODIFICADO: Hacer join con la tabla de vendedores
+    """Obtiene todos los proyectos de un cliente CON nombre del vendedor (si existe)"""
+    
+    # 🔥 LEFT JOIN para que traiga proyectos SIN vendedor también
     proyectos = db.query(
         Proyecto,
         VendedorDB.nombre.label('vendedor_nombre'),
         VendedorDB.correo.label('vendedor_email')
-    ).join(
+    ).outerjoin(  # 🔥 CAMBIO: join → outerjoin
         VendedorDB, Proyecto.vendedor_id == VendedorDB.id
     ).filter(
         Proyecto.cliente_id == cliente_id
     ).order_by(Proyecto.created_at.desc()).all()
     
-    # Construir la respuesta con la info del vendedor
+    # Construir la respuesta con la info del vendedor (puede ser None)
     resultado = []
     for proyecto, vendedor_nombre, vendedor_email in proyectos:
-        proyecto_dict = {
-            **proyecto.__dict__,
-            'vendedor': {
+        vendedor_info = None
+        if proyecto.vendedor_id and vendedor_nombre:
+            vendedor_info = {
                 'id': proyecto.vendedor_id,
                 'nombre': vendedor_nombre,
                 'email': vendedor_email
             }
+        
+        proyecto_dict = {
+            **proyecto.__dict__,
+            'vendedor': vendedor_info
         }
         resultado.append(proyecto_dict)
     

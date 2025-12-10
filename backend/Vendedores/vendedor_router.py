@@ -86,7 +86,7 @@ def login_vendedor(datos: LoginVendedor, db: Session = Depends(get_db)):
     
     print(f"🔍 DEBUG - Vendedor: {vendedor.nombre}")
     print(f"🔍 DEBUG - Especialidades raw (ENUM): {vendedor.especialidades}")
-    print(f"🔍 DEBUG - Especialidades amigables: {especialidades_str}")
+    print(f"🔍 DEBUG - Especialidades amigables (array): {especialidades_amigables}")
     
     return {
         "mensaje": "Login exitoso", 
@@ -94,7 +94,7 @@ def login_vendedor(datos: LoginVendedor, db: Session = Depends(get_db)):
             "id": vendedor.id,
             "nombre": vendedor.nombre,
             "correo": vendedor.correo,
-            "especialidades": especialidades_str,
+            "especialidades": especialidades_amigables,
             "tipo": "vendedor"
         }
     }

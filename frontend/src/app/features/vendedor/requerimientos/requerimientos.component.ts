@@ -1,117 +1,155 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
-import { RequerimientosService, Requerimiento } from '../../../core/services/requerimientos.service';
+import { Router } from '@angular/router';
+import { SubtareaService } from '../../../core/services/subtarea.service';
+
+interface ProyectoConSubtareas {
+  proyecto_id: number;
+  proyecto_titulo: string;
+  proyecto_descripcion?: string;
+  proyecto_presupuesto?: number;
+  proyecto_tiempo_estimado?: number;
+  cliente_id: number;
+  cliente_nombre: string;
+  subtareas: SubtareaDisponible[];
+  expandido: boolean;
+}
+
+interface SubtareaDisponible {
+  id: number;
+  codigo: string;
+  titulo: string;
+  descripcion: string;
+  especialidad: string;
+  prioridad: string;
+  estimacion_horas: number;
+  proyecto_id: number;
+  proyecto_titulo?: string;  // 🔥 Ahora opcional
+  cliente_nombre?: string;   // 🔥 Ahora opcional
+}
 
 @Component({
   selector: 'app-requerimientos-vendedor',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <div class="requerimientos-container">
-      <!-- 🔥 NUEVA BARRA DE NAVEGACIÓN SUPERIOR -->
+      <!-- Barra de navegación superior -->
       <div class="top-navigation">
         <button class="btn-back" (click)="volverAtras()">
           ← Atrás
         </button>
-        <h2 class="page-title"></h2>
+        <h2 class="page-title">Oportunidades Disponibles</h2>
         <button class="btn-proyectos" (click)="irAProyectos()">
-          📂 Proyectos
+          📂 Mis Proyectos
         </button>
       </div>
 
       <!-- Header con estadísticas -->
       <div class="header">
         <div class="header-left">
-          <h2>🎯 Requerimientos Disponibles</h2>
-          <p class="subtitle">Proyectos que coinciden con tus especialidades</p>
+          <h2>🎯 Sub-tareas Disponibles</h2>
+          <p class="subtitle">
+            Proyectos que coinciden con tu especialidad: 
+            <span class="especialidad-badge">{{ especialidadVendedor || 'Todas' }}</span>
+          </p>
         </div>
         <div class="stats">
           <div class="stat-card">
-            <span class="stat-number">{{ requerimientosDisponibles.length }}</span>
-            <span class="stat-label">Disponibles</span>
+            <span class="stat-number">{{ totalSubtareasDisponibles }}</span>
+            <span class="stat-label">Sub-tareas</span>
           </div>
           <div class="stat-card">
-            <span class="stat-number">{{ misRequerimientos.length }}</span>
-            <span class="stat-label">Aceptados</span>
+            <span class="stat-number">{{ proyectosAgrupados.length }}</span>
+            <span class="stat-label">Proyectos</span>
           </div>
         </div>
       </div>
 
-      <!-- Requerimientos Disponibles -->
-      <section class="section">
-        <h3>📋 Nuevos Proyectos</h3>
+      <!-- Loading -->
+      <div *ngIf="cargando" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando oportunidades...</p>
+      </div>
+
+      <!-- Lista de proyectos con sub-tareas -->
+      <div *ngIf="!cargando" class="proyectos-list">
         
-        <div class="requerimientos-list">
-          <div *ngFor="let req of requerimientosDisponibles" class="requerimiento-card disponible">
-            <div class="card-header">
-              <h4>{{ req.titulo }}</h4>
-              <span class="badge disponible">Disponible</span>
+        <!-- Por cada proyecto -->
+        <div *ngFor="let proyecto of proyectosAgrupados" class="proyecto-card">
+          
+          <!-- Header del proyecto (siempre visible) -->
+          <div class="proyecto-header" (click)="toggleProyecto(proyecto.proyecto_id)">
+            <div class="proyecto-info">
+              <h3>{{ proyecto.proyecto_titulo }}</h3>
+              <p class="cliente">👤 {{ proyecto.cliente_nombre }}</p>
             </div>
-            
-            <p class="mensaje">{{ req.mensaje }}</p>
-            
-            <div class="info">
-              <span class="especialidad">{{ req.especialidad }}</span>
-              <span class="cliente">👤 Cliente: {{ req.cliente_nombre || 'Cliente #' + req.cliente_id }}</span>
-            </div>
-            
-            <div class="actions">
-              <button class="btn-secondary" (click)="verDetalles(req)">
-                Ver Detalles
-              </button>
-              <button class="btn-primary" (click)="aceptarRequerimiento(req.id)">
-                ✅ Aceptar Proyecto
-              </button>
+            <div class="proyecto-meta">
+              <span class="subtareas-count">
+                {{ proyecto.subtareas.length }} sub-tarea{{ proyecto.subtareas.length !== 1 ? 's' : '' }} disponible{{ proyecto.subtareas.length !== 1 ? 's' : '' }}
+              </span>
+              <span class="expand-icon">{{ proyecto.expandido ? '▼' : '▶' }}</span>
             </div>
           </div>
 
-          <div *ngIf="requerimientosDisponibles.length === 0" class="empty-state">
-            <div class="empty-icon">🔍</div>
-            <p>No hay requerimientos disponibles en este momento</p>
-            <p class="empty-subtitle">Vuelve pronto para ver nuevas oportunidades</p>
-            <button class="btn-refresh" (click)="cargarRequerimientos()">
-              🔄 Actualizar
-            </button>
+          <!-- Detalle del proyecto (expandible) -->
+          <div class="proyecto-detalle" *ngIf="proyecto.expandido">
+            
+            <!-- Sub-tareas del proyecto -->
+            <div class="subtareas-list">
+              <div *ngFor="let subtarea of proyecto.subtareas" class="subtarea-card">
+                
+                <!-- Header de la sub-tarea -->
+                <div class="subtarea-header">
+                  <div class="subtarea-codigo">
+                    {{ getPrioridadIcon(subtarea.prioridad) }} {{ subtarea.codigo }}
+                  </div>
+                  <span class="prioridad-badge" [style.background-color]="getPrioridadColor(subtarea.prioridad)">
+                    {{ subtarea.prioridad }}
+                  </span>
+                </div>
+
+                <!-- Contenido de la sub-tarea -->
+                <div class="subtarea-body">
+                  <h4>{{ subtarea.titulo }}</h4>
+                  <p class="descripcion">{{ subtarea.descripcion }}</p>
+
+                  <div class="subtarea-info">
+                    <div class="info-item">
+                      <span class="icon">⏱️</span>
+                      <span class="text">{{ subtarea.estimacion_horas }}h estimadas</span>
+                    </div>
+                    <div class="info-item">
+                      <span class="icon">⚙️</span>
+                      <span class="text">{{ subtarea.especialidad }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Botón de aceptar -->
+                  <button class="btn-aceptar" (click)="aceptarSubtarea(subtarea.id)">
+                    ✅ Aceptar Sub-tarea
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
           </div>
+
         </div>
-      </section>
 
-      <!-- Mis Proyectos Aceptados -->
-      <section class="section">
-        <h3>🚀 Mis Proyectos Activos</h3>
-        
-        <div class="requerimientos-list">
-          <div *ngFor="let req of misRequerimientos" class="requerimiento-card activo">
-            <div class="card-header">
-              <h4>{{ req.titulo }}</h4>
-              <span class="badge activo">En Progreso</span>
-            </div>
-            
-            <p class="mensaje">{{ req.mensaje }}</p>
-            
-            <div class="info">
-              <span class="especialidad">{{ req.especialidad }}</span>
-              <span class="cliente">👤 Cliente: {{ req.cliente_nombre || 'Cliente #' + req.cliente_id }}</span>
-            </div>
-            
-            <div class="actions">
-              <button class="btn-secondary" (click)="verProyecto(req)">
-                📋 Ver Proyecto
-              </button>
-              <button class="btn-accent" (click)="gestionarProyecto(req.id)">
-                ⚙️ Gestionar
-              </button>
-            </div>
-          </div>
-
-          <div *ngIf="misRequerimientos.length === 0" class="empty-state">
-            <div class="empty-icon">📂</div>
-            <p>No has aceptado proyectos aún</p>
-            <p class="empty-subtitle">Cuando aceptes requerimientos, aparecerán aquí</p>
-          </div>
+        <!-- Empty state -->
+        <div *ngIf="proyectosAgrupados.length === 0" class="empty-state">
+          <div class="empty-icon">🔍</div>
+          <h3>No hay sub-tareas disponibles</h3>
+          <p>No encontramos sub-tareas que coincidan con tu especialidad en este momento.</p>
+          <p class="empty-subtitle">Vuelve pronto para ver nuevas oportunidades</p>
+          <button class="btn-refresh" (click)="cargarSubtareasDisponibles()">
+            🔄 Actualizar
+          </button>
         </div>
-      </section>
+
+      </div>
     </div>
   `,
   styles: [`
@@ -120,11 +158,10 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       background: #f8f9fa;
       padding: 20px;
       padding-top: 80px;
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
     }
 
-    /* 🔥 NUEVA BARRA DE NAVEGACIÓN SUPERIOR */
     .top-navigation {
       position: fixed;
       top: 0;
@@ -137,7 +174,6 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       padding: 16px 24px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       z-index: 1000;
-      border-bottom: 2px solid #f0f0f0;
     }
 
     .page-title {
@@ -157,9 +193,6 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       font-weight: 600;
       transition: all 0.2s;
       font-size: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
 
     .btn-back {
@@ -167,19 +200,14 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       color: white;
     }
 
-    .btn-back:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
-    }
-
     .btn-proyectos {
       background: linear-gradient(135deg, #ff6b35, #f7931e);
       color: white;
     }
 
-    .btn-proyectos:hover {
+    .btn-back:hover, .btn-proyectos:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     }
 
     .header {
@@ -193,7 +221,7 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
 
     .header-left h2 {
       color: #2c3e50;
-      margin: 0 0 5px 0;
+      margin: 0 0 8px 0;
       font-size: 28px;
       font-weight: 700;
     }
@@ -201,7 +229,16 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
     .subtitle {
       color: #666;
       margin: 0;
-      font-size: 14px;
+      font-size: 15px;
+    }
+
+    .especialidad-badge {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 13px;
     }
 
     .stats {
@@ -215,14 +252,14 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       padding: 15px 20px;
       border-radius: 12px;
       text-align: center;
-      min-width: 80px;
+      min-width: 100px;
     }
 
     .stat-number {
       display: block;
-      font-size: 24px;
+      font-size: 32px;
       font-weight: bold;
-      margin-bottom: 2px;
+      margin-bottom: 4px;
     }
 
     .stat-label {
@@ -230,180 +267,235 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
       opacity: 0.9;
     }
 
-    .section {
-      margin-bottom: 40px;
-    }
-
-    .section h3 {
-      color: #2c3e50;
-      margin: 0 0 20px 0;
-      font-size: 20px;
-      font-weight: 600;
-    }
-
-    .requerimientos-list {
-      display: grid;
-      gap: 20px;
-    }
-
-    .requerimiento-card {
-      background: white;
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: transform 0.2s, box-shadow 0.2s;
-      border-left: 4px solid transparent;
-    }
-
-    .requerimiento-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-    }
-
-    .requerimiento-card.disponible {
-      border-left-color: #28a745;
-    }
-
-    .requerimiento-card.activo {
-      border-left-color: #667eea;
-    }
-
-    .card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    }
-
-    .card-header h4 {
-      margin: 0;
-      color: #2c3e50;
-      font-size: 18px;
-      font-weight: 600;
-      flex: 1;
-    }
-
-    .badge {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge.disponible {
-      background: #d4edda;
-      color: #155724;
-    }
-
-    .badge.activo {
-      background: #cce5ff;
-      color: #004085;
-    }
-
-    .mensaje {
-      color: #555;
-      margin: 0 0 15px 0;
-      line-height: 1.5;
-      font-size: 15px;
-    }
-
-    .info {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-    }
-
-    .especialidad {
-      background: #e3f2fd;
-      color: #1976d2;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-    }
-
-    .cliente {
-      background: #f8f9fa;
-      color: #495057;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 13px;
-    }
-
-    .actions {
-      display: flex;
-      gap: 12px;
-    }
-
-    .btn-primary, .btn-secondary, .btn-accent, .btn-refresh {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: all 0.2s;
-      font-size: 14px;
-      flex: 1;
-    }
-
-    .btn-primary {
-      background: linear-gradient(135deg, #28a745, #20c997);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-    }
-
-    .btn-secondary {
-      background: #f8f9fa;
-      color: #495057;
-      border: 1px solid #dee2e6;
-    }
-
-    .btn-secondary:hover {
-      background: #e9ecef;
-    }
-
-    .btn-accent {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: white;
-    }
-
-    .btn-accent:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    .btn-refresh {
-      background: #6c757d;
-      color: white;
-    }
-
-    .empty-state {
+    .loading-state {
       text-align: center;
       padding: 60px 20px;
       color: #666;
     }
 
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .proyectos-list {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .proyecto-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .proyecto-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    }
+
+    .proyecto-header {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: background 0.2s;
+    }
+
+    .proyecto-header:hover {
+      background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+    }
+
+    .proyecto-info h3 {
+      margin: 0 0 6px 0;
+      color: #2c3e50;
+      font-size: 20px;
+      font-weight: 600;
+    }
+
+    .cliente {
+      margin: 0;
+      color: #666;
+      font-size: 14px;
+    }
+
+    .proyecto-meta {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .subtareas-count {
+      background: #667eea;
+      color: white;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .expand-icon {
+      font-size: 18px;
+      color: #667eea;
+      font-weight: bold;
+    }
+
+    .proyecto-detalle {
+      padding: 24px;
+      border-top: 2px solid #f0f0f0;
+    }
+
+    .subtareas-list {
+      display: grid;
+      gap: 16px;
+    }
+
+    .subtarea-card {
+      background: #f8f9fa;
+      border: 2px solid #e9ecef;
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .subtarea-card:hover {
+      border-color: #667eea;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    }
+
+    .subtarea-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .subtarea-codigo {
+      font-weight: 600;
+      color: #495057;
+      font-size: 14px;
+    }
+
+    .prioridad-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+    }
+
+    .subtarea-body h4 {
+      margin: 0 0 10px 0;
+      color: #2c3e50;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .descripcion {
+      color: #555;
+      line-height: 1.6;
+      margin: 0 0 16px 0;
+      font-size: 14px;
+    }
+
+    .subtarea-info {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #495057;
+    }
+
+    .icon {
+      font-size: 16px;
+    }
+
+    .btn-aceptar {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-aceptar:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+      color: #666;
+    }
+
     .empty-icon {
-      font-size: 48px;
-      margin-bottom: 15px;
-      opacity: 0.6;
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .empty-state h3 {
+      margin: 0 0 12px 0;
+      color: #2c3e50;
+      font-size: 22px;
     }
 
     .empty-state p {
       margin: 0 0 8px 0;
-      font-size: 16px;
+      font-size: 15px;
     }
 
     .empty-subtitle {
       font-size: 14px;
       opacity: 0.8;
-      margin-bottom: 20px !important;
+      margin-bottom: 24px !important;
+    }
+
+    .btn-refresh {
+      padding: 12px 24px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-refresh:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
     }
 
     @media (max-width: 768px) {
@@ -412,49 +504,160 @@ import { RequerimientosService, Requerimiento } from '../../../core/services/req
         padding-top: 70px;
       }
 
-      .top-navigation {
-        padding: 12px 16px;
-      }
-
-      .page-title {
-        font-size: 18px;
-      }
-
-      .btn-back, .btn-proyectos {
-        padding: 8px 14px;
-        font-size: 13px;
-      }
-      
       .header {
         flex-direction: column;
-        align-items: stretch;
       }
-      
-      .actions {
-        flex-direction: column;
+
+      .stats {
+        width: 100%;
+        justify-content: space-around;
       }
-      
-      .info {
+
+      .proyecto-meta {
         flex-direction: column;
+        align-items: flex-end;
         gap: 8px;
       }
     }
   `]
 })
 export class RequerimientoComponent implements OnInit {
-  requerimientosDisponibles: Requerimiento[] = [];
-  misRequerimientos: Requerimiento[] = [];
+  proyectosAgrupados: ProyectoConSubtareas[] = [];
+  subtareasDisponibles: SubtareaDisponible[] = [];
+  cargando: boolean = true;
+  especialidadVendedor: string = '';
+  totalSubtareasDisponibles: number = 0;
 
   constructor(
-    private requerimientosService: RequerimientosService,
+    private subtareaService: SubtareaService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.cargarRequerimientos();
+    this.obtenerEspecialidadVendedor();
+    this.cargarSubtareasDisponibles();
   }
 
-  // 🔥 NUEVOS MÉTODOS DE NAVEGACIÓN
+  obtenerEspecialidadVendedor(): void {
+  const usuario = localStorage.getItem('usuario');
+  if (usuario) {
+    const vendedor = JSON.parse(usuario);
+    
+    // 🔥 Tomar TODAS las especialidades
+    let especialidades = [];
+    if (Array.isArray(vendedor.especialidades)) {
+      especialidades = vendedor.especialidades;
+    } else if (typeof vendedor.especialidades === 'string') {
+      // Si viene como string con comas, convertir a array
+      especialidades = vendedor.especialidades.split(',').map((e: string) => e.trim());
+    }
+    
+    // Tomar la primera especialidad para filtrar
+    this.especialidadVendedor = especialidades[0] || '';
+    
+    console.log('🔍 Especialidades del vendedor:', especialidades);
+    console.log('🔍 Filtrando por:', this.especialidadVendedor);
+  }
+}
+
+  cargarSubtareasDisponibles(): void {
+    this.cargando = true;
+    
+    this.subtareaService.obtenerSubtareasDisponibles(this.especialidadVendedor).subscribe({
+      next: (response) => {
+        console.log('✅ Respuesta del servidor:', response);
+        
+        this.subtareasDisponibles = response.subtareas || [];
+        this.totalSubtareasDisponibles = response.total || 0;
+        
+        this.agruparPorProyecto();
+        
+        this.cargando = false;
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar sub-tareas:', error);
+        this.cargando = false;
+      }
+    });
+  }
+
+  agruparPorProyecto(): void {
+  const proyectosMap = new Map<number, ProyectoConSubtareas>();
+  
+  this.subtareasDisponibles.forEach(subtarea => {
+    if (!proyectosMap.has(subtarea.proyecto_id)) {
+      proyectosMap.set(subtarea.proyecto_id, {
+        proyecto_id: subtarea.proyecto_id,
+        proyecto_titulo: subtarea.proyecto_titulo || 'Proyecto sin título',  // 🔥 Valor por defecto
+        cliente_id: 0,
+        cliente_nombre: subtarea.cliente_nombre || 'Cliente desconocido',   // 🔥 Valor por defecto
+        subtareas: [],
+        expandido: false
+      });
+    }
+    
+    proyectosMap.get(subtarea.proyecto_id)!.subtareas.push(subtarea);
+  });
+  
+  this.proyectosAgrupados = Array.from(proyectosMap.values());
+  console.log('📊 Proyectos agrupados:', this.proyectosAgrupados);
+}
+
+  toggleProyecto(proyectoId: number): void {
+    const proyecto = this.proyectosAgrupados.find(p => p.proyecto_id === proyectoId);
+    if (proyecto) {
+      proyecto.expandido = !proyecto.expandido;
+    }
+  }
+
+  aceptarSubtarea(subtareaId: number): void {
+  const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
+  
+  if (!subtarea) {
+    alert('❌ Sub-tarea no encontrada');
+    return;
+  }
+
+  const confirmacion = confirm(
+    `¿Deseas aceptar esta sub-tarea?\n\n` +
+    `📋 ${subtarea.titulo}\n` +
+    `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
+    `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
+    `Una vez aceptada, aparecerá en "Mis Proyectos"`
+  );
+
+  if (!confirmacion) return;
+
+  const vendedorId = this.obtenerVendedorId();
+  if (!vendedorId) {
+    alert('❌ Error: No se pudo obtener tu ID de vendedor');
+    return;
+  }
+
+  this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
+    next: (response) => {
+      console.log('✅ Sub-tarea aceptada:', response);
+      alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
+      
+      // 🔥 ACTUALIZACIÓN OPTIMIZADA: Solo quitar la sub-tarea aceptada
+      // En lugar de recargar todo, solo filtrar la que se aceptó
+      this.subtareasDisponibles = this.subtareasDisponibles.filter(s => s.id !== subtareaId);
+      
+      // Actualizar contador
+      this.totalSubtareasDisponibles--;
+      
+      // Reagrupar proyectos
+      this.agruparPorProyecto();
+      
+      console.log('📊 Sub-tareas restantes:', this.subtareasDisponibles.length);
+    },
+    error: (error) => {
+      console.error('❌ Error al aceptar sub-tarea:', error);
+      alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
+    }
+  });
+}
+
   volverAtras(): void {
     this.router.navigate(['/vendedor/bienvenida']);
   }
@@ -463,86 +666,29 @@ export class RequerimientoComponent implements OnInit {
     this.router.navigate(['/vendedor/mis-proyectos']);
   }
 
-  cargarRequerimientos(): void {
-  const usuario = localStorage.getItem('usuario');
-  if (usuario) {
-    const vendedor = JSON.parse(usuario);
-    const vendedorId = vendedor.id;
-
-    // 🔥 OBTENER LA ESPECIALIDAD DEL VENDEDOR
-    const especialidadVendedor = vendedor.especialidades || vendedor.especialidad;
-    
-    console.log('🔍 Datos del vendedor:', vendedor);
-    console.log('🔍 Especialidad del vendedor:', especialidadVendedor);
-
-    // 🔥 PASAR LA ESPECIALIDAD AL SERVICIO
-    this.requerimientosService.obtenerRequerimientosDisponibles(especialidadVendedor).subscribe({
-      next: (requerimientos) => {
-        this.requerimientosDisponibles = requerimientos;
-        console.log('✅ Requerimientos disponibles (filtrados):', requerimientos);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar requerimientos disponibles:', error);
-      }
-    });
-
-    // Cargar mis requerimientos aceptados
-    this.requerimientosService.obtenerRequerimientosVendedor(vendedorId).subscribe({
-      next: (requerimientos) => {
-        this.misRequerimientos = requerimientos;
-        console.log('✅ Mis requerimientos:', requerimientos);
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar mis requerimientos:', error);
-      }
-    });
+  getPrioridadColor(prioridad: string): string {
+    const colores: { [key: string]: string } = {
+      'ALTA': '#ef4444',
+      'MEDIA': '#f59e0b',
+      'BAJA': '#10b981'
+    };
+    return colores[prioridad] || '#6b7280';
   }
-}
 
-  aceptarRequerimiento(requerimientoId: number): void {
-    if (confirm('¿Estás seguro de que deseas aceptar este proyecto?')) {
-      const usuario = localStorage.getItem('usuario');
-      if (usuario) {
-        const vendedorId = JSON.parse(usuario).id;
+  getPrioridadIcon(prioridad: string): string {
+    const iconos: { [key: string]: string } = {
+      'ALTA': '🔴',
+      'MEDIA': '🟡',
+      'BAJA': '🟢'
+    };
+    return iconos[prioridad] || '⚪';
+  }
 
-        this.requerimientosService.asignarRequerimiento(requerimientoId, vendedorId).subscribe({
-          next: () => {
-            console.log('Requerimiento aceptado exitosamente');
-            alert('✅ ¡Proyecto aceptado exitosamente!');
-            this.cargarRequerimientos();
-          },
-          error: (error) => {
-            console.error('Error al aceptar requerimiento:', error);
-            alert('❌ Hubo un error al aceptar el proyecto. Intenta nuevamente.');
-          }
-        });
-      }
+  private obtenerVendedorId(): number | null {
+    const usuario = localStorage.getItem('usuario');
+    if (usuario) {
+      return JSON.parse(usuario).id;
     }
-  }
-
-  verDetalles(requerimiento: Requerimiento): void {
-    alert(`Detalles del Proyecto:\n\n` +
-          `Título: ${requerimiento.titulo}\n` +
-          `Descripción: ${requerimiento.mensaje}\n` +
-          `Especialidad: ${requerimiento.especialidad}\n` +
-          `Cliente: ${requerimiento.cliente_nombre || 'Cliente #' + requerimiento.cliente_id}`);
-  }
-
-  verProyecto(requerimiento: Requerimiento): void {
-    alert(`Proyecto Activo:\n\n` +
-          `${requerimiento.titulo}\n\n` +
-          `Estado: En progreso\n` +
-          `Cliente: ${requerimiento.cliente_nombre || 'Cliente #' + requerimiento.cliente_id}\n` +
-          `Especialidad: ${requerimiento.especialidad}`);
-  }
-
-  gestionarProyecto(requerimientoId: number): void {
-    alert('🚀 Gestión del Proyecto\n\n' +
-          'Funcionalidades disponibles:\n' +
-          '• Comunicarte con el cliente\n' +
-          '• Actualizar el progreso\n' +
-          '• Subir archivos de entregables\n' +
-          '• Marcar como completado\n\n' +
-          '(Esta funcionalidad se implementará en "Mis Proyectos")');
+    return null;
   }
 }

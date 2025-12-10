@@ -1,0 +1,145 @@
+<div class="proyecto-container">
+  <!-- Header -->
+  <div class="proyecto-header">
+    <button class="btn-volver" (click)="volver()">
+      ← Volver a mis proyectos
+    </button>
+    <h2>Detalle del Proyecto</h2>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="cargando" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando proyecto...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !cargando" class="error-message">
+    {{ error }}
+  </div>
+
+  <!-- Contenido del proyecto -->
+  <div *ngIf="estadisticas && !cargando" class="proyecto-content">
+    
+    <!-- Estadísticas generales -->
+    <div class="stats-card">
+      <h3>📊 Progreso General</h3>
+      
+      <div class="progress-bar-container">
+        <div class="progress-bar">
+          <div 
+            class="progress-fill" 
+            [style.width.%]="estadisticas.progreso_porcentaje"
+          ></div>
+        </div>
+        <span class="progress-text">{{ estadisticas.progreso_porcentaje }}% Completado</span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-number">{{ estadisticas.total_subtareas }}</span>
+          <span class="stat-label">Total Sub-tareas</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ estadisticas.pendientes }}</span>
+          <span class="stat-label">Pendientes</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ estadisticas.asignadas }}</span>
+          <span class="stat-label">Asignadas</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ estadisticas.en_progreso }}</span>
+          <span class="stat-label">En Progreso</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-number">{{ estadisticas.completadas }}</span>
+          <span class="stat-label">Completadas</span>
+        </div>
+      </div>
+
+      <!-- Botón publicar (solo si hay sub-tareas pendientes sin asignar) -->
+      <div class="action-buttons" *ngIf="estadisticas.pendientes > 0">
+        <button class="btn-publicar" (click)="publicarProyecto()">
+          📢 Publicar Proyecto
+        </button>
+        <p class="hint">Las sub-tareas estarán disponibles para vendedores especializados</p>
+      </div>
+    </div>
+
+    <!-- Lista de sub-tareas -->
+    <div class="subtareas-section">
+      <h3>🔧 Sub-tareas del Proyecto</h3>
+
+      <div class="subtareas-list">
+        <div 
+          *ngFor="let subtarea of estadisticas.subtareas" 
+          class="subtarea-card"
+          [class]="getEstadoColor(subtarea.estado)"
+          (click)="verDetalleSubtarea(subtarea)"
+          [style.cursor]="subtarea.vendedor_id ? 'pointer' : 'not-allowed'"
+          [style.opacity]="subtarea.vendedor_id ? '1' : '0.6'"
+          [title]="subtarea.vendedor_id ? 'Clic para ver conversación con ' + subtarea.vendedor_nombre : 'Esta sub-tarea aún no tiene vendedor asignado'"
+        >
+          <!-- Header de la sub-tarea -->
+          <div class="subtarea-header">
+            <div class="subtarea-codigo">
+              {{ getPrioridadIcon(subtarea.prioridad) }} {{ subtarea.codigo }}
+            </div>
+            <div class="subtarea-estado">
+              {{ subtarea.estado }}
+            </div>
+          </div>
+
+          <!-- Contenido -->
+          <div class="subtarea-body">
+            <h4>{{ subtarea.titulo }}</h4>
+            <p class="subtarea-descripcion">{{ subtarea.descripcion }}</p>
+
+            <div class="subtarea-meta">
+              <div class="meta-item">
+                <span class="meta-label">⚙️ Especialidad:</span>
+                <span class="meta-value">{{ getNombreEspecialidad(subtarea.especialidad) }}</span>
+              </div>
+              <div class="meta-item">
+                <span class="meta-label">⏱️ Estimación:</span>
+                <span class="meta-value">{{ subtarea.estimacion_horas }}h</span>
+              </div>
+              
+              <!-- 🔥 INDICADOR DE VENDEDOR -->
+              <div class="meta-item" *ngIf="subtarea.vendedor_nombre">
+                <span class="meta-label">👤 Vendedor:</span>
+                <span class="meta-value vendedor-asignado">{{ subtarea.vendedor_nombre }}</span>
+              </div>
+              <div class="meta-item sin-vendedor" *ngIf="!subtarea.vendedor_nombre">
+                <span class="meta-label">⏳ Estado:</span>
+                <span class="meta-value">Esperando vendedor</span>
+              </div>
+            </div>
+
+            <!-- Fechas -->
+            <div class="subtarea-fechas" *ngIf="subtarea.fecha_asignacion || subtarea.fecha_inicio || subtarea.fecha_completado">
+              <div *ngIf="subtarea.fecha_asignacion" class="fecha-item">
+                📅 Asignada: {{ subtarea.fecha_asignacion | date:'short' }}
+              </div>
+              <div *ngIf="subtarea.fecha_inicio" class="fecha-item">
+                🚀 Iniciada: {{ subtarea.fecha_inicio | date:'short' }}
+              </div>
+              <div *ngIf="subtarea.fecha_completado" class="fecha-item">
+                ✅ Completada: {{ subtarea.fecha_completado | date:'short' }}
+              </div>
+            </div>
+            
+            <!-- 🔥 BOTÓN VISUAL (solo si tiene vendedor) -->
+            <div class="subtarea-actions" *ngIf="subtarea.vendedor_id">
+              <button class="btn-ver-conversacion" (click)="verDetalleSubtarea(subtarea); $event.stopPropagation()">
+                💬 Ver conversación con vendedor
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

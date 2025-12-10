@@ -14,7 +14,8 @@ export interface Archivo {
 
 export interface MensajeUI {
   id: number;
-  proyectoId: number;
+  proyectoId?: number;  // 🔥 Ahora OPCIONAL
+  subtareaId?: number;  // 🔥 NUEVO: También opcional
   remitente: 'cliente' | 'vendedor';
   contenido: string;
   fecha: Date;
@@ -61,54 +62,72 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     this.chatService.desconectarChat();
   }
 
-  cargarProyectos(): void {
-    this.cargando = true;
-    
-    const clienteId = this.obtenerClienteId();
-    
-    if (!clienteId) {
-      console.error('No se encontró el ID del cliente');
+ cargarProyectos(): void {
+  this.cargando = true;
+  
+  const clienteId = this.obtenerClienteId();
+  
+  if (!clienteId) {
+    console.error('No se encontró el ID del cliente');
+    this.cargando = false;
+    return;
+  }
+
+  this.proyectosService.obtenerProyectosCliente(clienteId).subscribe({
+    next: (proyectos) => {
+      // 🔥 FILTRAR: Solo proyectos que NO estén en ANÁLISIS ni PUBLICADO
+      const proyectosFiltrados = proyectos.filter(p => {
+        const fase = p.fase || '';
+        return fase !== 'ANÁLISIS' && fase !== 'ANALISIS'; // Excluir proyectos en análisis
+      });
+
+      console.log('📊 Total proyectos del cliente:', proyectos.length);
+      console.log('📊 Proyectos filtrados (EN_PROGRESO+):', proyectosFiltrados.length);
+
+      this.proyectos = proyectosFiltrados.map(proyecto => ({
+        ...proyecto,
+        fechaInicio: new Date(proyecto.fecha_inicio),
+        fechaEstimada: proyecto.fecha_estimada ? new Date(proyecto.fecha_estimada) : null,
+        fechaCompletado: proyecto.fecha_completado ? new Date(proyecto.fecha_completado) : null,
+        ultimaActividad: new Date(proyecto.updated_at),
+        archivos: proyecto.archivos || [],
+        vendedor: proyecto.vendedor || {
+          id: proyecto.vendedor_id,
+          nombre: 'Vendedor',
+          email: '',
+          avatar: '👨‍💻'
+        },
+        tieneSubtareas: (proyecto.total_subtareas || 0) > 0,
+        esProyectoNuevo: (proyecto.total_subtareas || 0) > 0,
+        fase: proyecto.fase || proyecto.estado || 'asignado'
+      }));
+
       this.cargando = false;
+    },
+    error: (error) => {
+      console.error('Error al cargar proyectos:', error);
+      this.cargando = false;
+    }
+  });
+}
+
+  seleccionarProyecto(proyecto: any): void {
+    if (proyecto.esProyectoNuevo) {
+      this.router.navigate(['/cliente/proyecto', proyecto.id]);
       return;
     }
 
-    this.proyectosService.obtenerProyectosCliente(clienteId).subscribe({
-      next: (proyectos) => {
-        this.proyectos = proyectos.map(proyecto => ({
-          ...proyecto,
-          fechaInicio: new Date(proyecto.fecha_inicio),
-          fechaEstimada: proyecto.fecha_estimada ? new Date(proyecto.fecha_estimada) : null,
-          fechaCompletado: proyecto.fecha_completado ? new Date(proyecto.fecha_completado) : null,
-          ultimaActividad: new Date(proyecto.updated_at),
-          archivos: proyecto.archivos || [],
-          vendedor: proyecto.vendedor || {
-            id: proyecto.vendedor_id,
-            nombre: 'Vendedor',
-            email: '',
-            avatar: '👨‍💻'
-          }
-        }));
-        this.cargando = false;
-      },
-      error: (error) => {
-        console.error('Error al cargar proyectos:', error);
-        this.cargando = false;
-      }
-    });
+    this.abrirChatProyecto(proyecto);
   }
 
-  seleccionarProyecto(proyecto: any): void {
+  private abrirChatProyecto(proyecto: any): void {
     this.proyectoSeleccionado = proyecto;
     
     console.log('🔌 Conectando al chat del proyecto:', proyecto.id);
     
-    // Conectar al WebSocket del proyecto
     this.chatService.conectarChat(proyecto.id);
-    
-    // Cargar historial de mensajes
     this.cargarMensajes(proyecto.id);
     
-    // Suscribirse a mensajes en tiempo real
     if (this.mensajesSubscription) {
       this.mensajesSubscription.unsubscribe();
     }
@@ -116,12 +135,12 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     this.mensajesSubscription = this.chatService.mensajes$.subscribe(mensaje => {
       console.log('📩 Nuevo mensaje recibido en tiempo real:', mensaje);
       
-      // Solo agregar si no está ya en la lista (evitar duplicados)
       const existe = this.mensajes.find(m => m.id === mensaje.id);
       if (!existe) {
         this.mensajes.push({
           id: mensaje.id || Date.now(),
-          proyectoId: mensaje.proyecto_id,
+          proyectoId: mensaje.proyecto_id,     // ✅ Ahora puede ser undefined
+          subtareaId: mensaje.subtarea_id,     // ✅ Nuevo campo
           remitente: mensaje.remitente_tipo,
           contenido: mensaje.contenido,
           fecha: mensaje.created_at ? new Date(mensaje.created_at) : new Date(),
@@ -133,7 +152,6 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     
     this.mostrarChat = true;
     
-    // Hacer focus en el input después de abrir el modal
     setTimeout(() => {
       const input = document.querySelector('.message-input') as HTMLInputElement;
       if (input) {
@@ -150,7 +168,8 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
         console.log('✅ Mensajes cargados:', mensajes);
         this.mensajes = mensajes.map(m => ({
           id: m.id || 0,
-          proyectoId: m.proyecto_id,
+          proyectoId: m.proyecto_id,    // ✅ Ahora puede ser undefined
+          subtareaId: m.subtarea_id,    // ✅ Nuevo campo
           remitente: m.remitente_tipo,
           contenido: m.contenido,
           fecha: m.created_at ? new Date(m.created_at) : new Date(),
@@ -184,18 +203,15 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     this.enviandoMensaje = true;
     console.log('📤 Enviando mensaje:', mensaje);
     
-    // Primero guardar en BD
     this.chatService.guardarMensaje(mensaje).subscribe({
       next: (mensajeGuardado) => {
         console.log('✅ Mensaje guardado en BD:', mensajeGuardado);
         
-        // Luego enviar por WebSocket para tiempo real
         this.chatService.enviarMensajeWS(mensajeGuardado);
         
         this.nuevoMensaje = '';
         this.enviandoMensaje = false;
         
-        // Mantener focus en el input
         setTimeout(() => {
           const input = document.querySelector('.message-input') as HTMLInputElement;
           if (input) {
@@ -223,7 +239,6 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
   }
 
   cerrarChatOverlay(event: MouseEvent): void {
-    // Solo cerrar si se hace click directamente en el overlay (fondo negro)
     if ((event.target as HTMLElement).classList.contains('chat-overlay')) {
       this.cerrarChat();
     }
@@ -252,13 +267,17 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
       return usuarioObj.id;
     }
     
-    // TEMPORAL: Hardcodear para probar el chat
     console.warn('⚠️ localStorage vacío. Usando ID hardcodeado: 2');
-    return 2; // Tu cliente William Alvarado
+    return 2;
   }
 
   obtenerColorEstado(estado: string): string {
     const colores: { [key: string]: string } = {
+      'ANÁLISIS': '#9333ea',
+      'PUBLICADO': '#3b82f6',
+      'EN_PROGRESO': '#f59e0b',
+      'COMPLETADO': '#10b981',
+      'CANCELADO': '#ef4444',
       'asignado': '#8b5cf6',
       'en_proceso': '#3b82f6', 
       'pausado': '#f59e0b',
@@ -270,6 +289,11 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
 
   obtenerEtiquetaEstado(estado: string): string {
     const etiquetas: { [key: string]: string } = {
+      'ANÁLISIS': '🔍 En Análisis',
+      'PUBLICADO': '📢 Publicado',
+      'EN_PROGRESO': '⚙️ En Progreso',
+      'COMPLETADO': '✅ Completado',
+      'CANCELADO': '❌ Cancelado',
       'asignado': 'Asignado',
       'en_proceso': 'En Proceso',
       'pausado': 'Pausado', 

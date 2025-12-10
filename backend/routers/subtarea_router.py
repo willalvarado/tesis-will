@@ -5,7 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from database import get_db
-from modelos.sub_tarea_modelo import SubTarea, EstadoSubTarea, PrioridadSubTarea
+from modelos.proyecto_modelo import SubTarea, EstadoSubTarea
 from modelos.proyecto_modelo import Proyecto, FaseProyecto
 from modelos.usuario_modelo import UsuarioDB
 from Vendedores.vendedor_modelo import Vendedor
@@ -93,7 +93,7 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
             "vendedor_id": st.vendedor_id,
             "vendedor_nombre": vendedor_nombre,
             "estado": st.estado.value if hasattr(st.estado, 'value') else st.estado,
-            "prioridad": st.prioridad.value if hasattr(st.prioridad, 'value') else st.prioridad,
+            "prioridad": st.prioridad,  # 🔥 Ya es un string, no necesita .value
             "presupuesto": float(st.presupuesto),
             "pagado": float(st.pagado),
             "estimacion_horas": st.estimacion_horas,
@@ -136,27 +136,31 @@ def obtener_subtareas_disponibles(
             query = query.filter(SubTarea.especialidad == especialidad)
             print(f"🔍 Filtrando por especialidad: {especialidad}")
         
-        # Filtro por prioridad
+        # Filtro por prioridad (ahora es string)
         if prioridad:
-            try:
-                prioridad_enum = PrioridadSubTarea[prioridad.upper()]
-                query = query.filter(SubTarea.prioridad == prioridad_enum)
-                print(f"🔍 Filtrando por prioridad: {prioridad}")
-            except KeyError:
-                pass
+            prioridad_upper = prioridad.upper()
+            if prioridad_upper in ["ALTA", "MEDIA", "BAJA"]:
+                query = query.filter(SubTarea.prioridad == prioridad_upper)
+                print(f"🔍 Filtrando por prioridad: {prioridad_upper}")
+        
+        # 🔥 Ordenar por prioridad manualmente (ALTA > MEDIA > BAJA)
+        from sqlalchemy import case
+        
+        prioridad_orden = case(
+            (SubTarea.prioridad == "ALTA", 1),
+            (SubTarea.prioridad == "MEDIA", 2),
+            (SubTarea.prioridad == "BAJA", 3),
+            else_=4
+        )
         
         subtareas = query.order_by(
-            SubTarea.prioridad.desc(),  # ALTA primero
+            prioridad_orden,  # ALTA primero
             SubTarea.created_at.desc()
         ).all()
         
         print(f"📊 {len(subtareas)} sub-tareas disponibles")
         
-        return {
-            "exito": True,
-            "total": len(subtareas),
-            "subtareas": agregar_nombres_a_subtareas(subtareas, db)
-        }
+        return agregar_nombres_a_subtareas(subtareas, db)
         
     except Exception as e:
         print(f"❌ Error obteniendo sub-tareas: {e}")
@@ -173,7 +177,7 @@ def obtener_mis_subtareas(
     Obtiene las sub-tareas asignadas a un vendedor específico.
     
     Params:
-        - estado: ASIGNADO, EN_PROGRESO, COMPLETADO
+        - estado: ASIGNADA, EN_PROGRESO, COMPLETADO
     """
     try:
         query = db.query(SubTarea).filter(
@@ -223,6 +227,7 @@ def obtener_subtareas_proyecto(
         # Estadísticas
         total = len(subtareas)
         pendientes = sum(1 for st in subtareas if st.estado == EstadoSubTarea.PENDIENTE)
+        asignadas = sum(1 for st in subtareas if st.estado == EstadoSubTarea.ASIGNADA)
         en_progreso = sum(1 for st in subtareas if st.estado == EstadoSubTarea.EN_PROGRESO)
         completadas = sum(1 for st in subtareas if st.estado == EstadoSubTarea.COMPLETADO)
         
@@ -233,6 +238,7 @@ def obtener_subtareas_proyecto(
             "estadisticas": {
                 "total": total,
                 "pendientes": pendientes,
+                "asignadas": asignadas,
                 "en_progreso": en_progreso,
                 "completadas": completadas,
                 "progreso_porcentaje": int((completadas / total * 100)) if total > 0 else 0
@@ -257,7 +263,7 @@ def aceptar_subtarea(
     
     1. Verifica que esté disponible
     2. Asigna al vendedor
-    3. Cambia estado a ASIGNADO
+    3. Cambia estado a ASIGNADA
     4. Actualiza el proyecto si es necesario
     """
     try:
@@ -284,7 +290,7 @@ def aceptar_subtarea(
         
         # Asignar sub-tarea
         subtarea.vendedor_id = data.vendedor_id
-        subtarea.estado = EstadoSubTarea.ASIGNADO
+        subtarea.estado = EstadoSubTarea.ASIGNADA
         subtarea.fecha_asignacion = datetime.utcnow()
         
         # Actualizar proyecto a EN_PROGRESO si es la primera sub-tarea asignada
@@ -336,26 +342,34 @@ def actualizar_progreso_subtarea(
         nuevo_estado = EstadoSubTarea[data.estado.upper()]
         
         if nuevo_estado == EstadoSubTarea.EN_PROGRESO:
-            if subtarea.estado != EstadoSubTarea.ASIGNADO:
-                raise HTTPException(status_code=400, detail="Solo se puede pasar a EN_PROGRESO desde ASIGNADO")
+            if subtarea.estado not in [EstadoSubTarea.ASIGNADA, EstadoSubTarea.PENDIENTE]:
+                raise HTTPException(status_code=400, detail="Solo se puede pasar a EN_PROGRESO desde ASIGNADA o PENDIENTE")
             subtarea.fecha_inicio = datetime.utcnow()
         
         elif nuevo_estado == EstadoSubTarea.COMPLETADO:
-            if subtarea.estado not in [EstadoSubTarea.ASIGNADO, EstadoSubTarea.EN_PROGRESO]:
+            if subtarea.estado not in [EstadoSubTarea.ASIGNADA, EstadoSubTarea.EN_PROGRESO]:
                 raise HTTPException(status_code=400, detail="Transición de estado inválida")
             subtarea.fecha_completado = datetime.utcnow()
             
             # Actualizar contador en proyecto
             proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
             if proyecto:
-                proyecto.subtareas_completadas = db.query(SubTarea).filter(
+                # Recalcular sub-tareas completadas
+                completadas_count = db.query(SubTarea).filter(
                     SubTarea.proyecto_id == proyecto.id,
                     SubTarea.estado == EstadoSubTarea.COMPLETADO
                 ).count() + 1
                 
+                proyecto.subtareas_completadas = completadas_count
+                
+                # Calcular progreso del proyecto
+                if proyecto.total_subtareas > 0:
+                    proyecto.progreso = int((completadas_count / proyecto.total_subtareas) * 100)
+                
                 # Si todas están completadas, marcar proyecto como completado
-                if proyecto.subtareas_completadas >= proyecto.total_subtareas:
+                if completadas_count >= proyecto.total_subtareas:
                     proyecto.fase = FaseProyecto.COMPLETADO
+                    proyecto.estado = "COMPLETADO"
                     proyecto.fecha_completado = datetime.utcnow()
         
         subtarea.estado = nuevo_estado
@@ -399,6 +413,10 @@ def obtener_estadisticas_vendedor(
             SubTarea.vendedor_id == vendedor_id,
             SubTarea.estado == EstadoSubTarea.EN_PROGRESO
         ).count()
+        asignadas = db.query(SubTarea).filter(
+            SubTarea.vendedor_id == vendedor_id,
+            SubTarea.estado == EstadoSubTarea.ASIGNADA
+        ).count()
         
         return {
             "exito": True,
@@ -407,10 +425,87 @@ def obtener_estadisticas_vendedor(
                 "total_subtareas": total,
                 "completadas": completadas,
                 "en_progreso": en_progreso,
+                "asignadas": asignadas,
                 "tasa_completacion": int((completadas / total * 100)) if total > 0 else 0
             }
         }
         
     except Exception as e:
         print(f"❌ Error obteniendo estadísticas: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # 🔥 NUEVO ENDPOINT - Obtener detalle completo de una sub-tarea
+@router.get("/{subtarea_id}")
+def obtener_detalle_subtarea(
+    subtarea_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene el detalle completo de una sub-tarea específica.
+    Incluye info del proyecto, cliente y vendedor asignado.
+    """
+    try:
+        # Buscar sub-tarea
+        subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
+        if not subtarea:
+            raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
+        
+        # Obtener proyecto
+        proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
+        if not proyecto:
+            raise HTTPException(status_code=404, detail="Proyecto no encontrado")
+        
+        # Obtener cliente
+        cliente = db.query(UsuarioDB).filter(UsuarioDB.id == proyecto.cliente_id).first()
+        cliente_info = {
+            "id": cliente.id,
+            "nombre": cliente.nombre,
+            "correo": cliente.correo
+        } if cliente else None
+        
+        # Obtener vendedor (si está asignado)
+        vendedor_info = None
+        if subtarea.vendedor_id:
+            vendedor = db.query(Vendedor).filter(Vendedor.id == subtarea.vendedor_id).first()
+            if vendedor:
+                vendedor_info = {
+                    "id": vendedor.id,
+                    "nombre": vendedor.nombre,
+                    "correo": vendedor.correo,
+                    "especialidades": vendedor.especialidades
+                }
+        
+        return {
+            "exito": True,
+            "subtarea": {
+                "id": subtarea.id,
+                "codigo": subtarea.codigo,
+                "titulo": subtarea.titulo,
+                "descripcion": subtarea.descripcion,
+                "especialidad": subtarea.especialidad,
+                "estado": subtarea.estado.value if hasattr(subtarea.estado, 'value') else subtarea.estado,
+                "prioridad": subtarea.prioridad,
+                "presupuesto": float(subtarea.presupuesto),
+                "pagado": float(subtarea.pagado),
+                "estimacion_horas": subtarea.estimacion_horas,
+                "fecha_asignacion": subtarea.fecha_asignacion,
+                "fecha_inicio": subtarea.fecha_inicio,
+                "fecha_completado": subtarea.fecha_completado,
+                "created_at": subtarea.created_at
+            },
+            "proyecto": {
+                "id": proyecto.id,
+                "titulo": proyecto.titulo,
+                "descripcion": proyecto.descripcion,
+                "fase": proyecto.fase.value if hasattr(proyecto.fase, 'value') else proyecto.fase,
+                "presupuesto": float(proyecto.presupuesto)
+            },
+            "cliente": cliente_info,
+            "vendedor": vendedor_info
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error obteniendo detalle de sub-tarea: {e}")
         raise HTTPException(status_code=500, detail=str(e))

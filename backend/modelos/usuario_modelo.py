@@ -34,6 +34,13 @@ class UsuarioDB(Base):
     ciudad = Column(String, default="")
     biografia = Column(String, default="")
 
+    # 🔥 Relaciones con proyectos
+    proyectos_como_cliente = relationship(
+        "Proyecto", 
+        foreign_keys="[Proyecto.cliente_id]",
+        back_populates="cliente"
+    )
+
     # Relaciones con los requerimientos
     requerimientos_creados = relationship(
         "Requerimiento", 

@@ -4,8 +4,12 @@
     <div class="assistant-info">
       <div class="avatar">🤖</div>
       <div class="info">
-        <h3>Asistente Virtual con IA</h3>
-        <p>Powered by OpenAI - Te ayudo a definir tu proyecto paso a paso</p>
+        <h3>Analista de Proyectos con IA</h3>
+        <p>
+          <span *ngIf="!proyectoId">Iniciando análisis profundo...</span>
+          <span *ngIf="proyectoId && !analisisCompletado">Proyecto {{proyectoId}} · Análisis en progreso</span>
+          <span *ngIf="analisisCompletado">Proyecto {{proyectoId}} · Análisis completado</span>
+        </p>
       </div>
     </div>
   </div>
@@ -15,7 +19,7 @@
     
     <!-- Mensajes del chat -->
     <div 
-      *ngFor="let mensaje of mensajes" 
+      *ngFor="let mensaje of mensajes; let i = index" 
       [class.assistant-message]="mensaje.role === 'assistant'"
       [class.user-message]="mensaje.role === 'user'"
       class="message"
@@ -25,31 +29,31 @@
         <div class="avatar">🤖</div>
         <div class="message-content">
           <div *ngIf="!mensaje.mostrarLoader">
-            <p *ngFor="let linea of mensaje.content.split('\n')" [innerHTML]="linea || '&nbsp;'"></p>
+            <div [innerHTML]="formatearMensaje(mensaje.content)"></div>
             
-            <!-- Sugerencias iniciales -->
-            <div class="suggestions" *ngIf="mensajes.length === 1">
-              <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para delivery de comida')">
-                📱 "Necesito una aplicación móvil para delivery"
+            <div class="suggestions" *ngIf="i === 0">
+              <div class="suggestion" (click)="usarSugerencia('Necesito una aplicación móvil para delivery')">
+                📱 Aplicación móvil de delivery
               </div>
-              <div class="suggestion" (click)="usarSugerencia('Quiero un sitio web con sistema de pagos')">
-                🌐 "Quiero un sitio web con pagos"
+              <div class="suggestion" (click)="usarSugerencia('Quiero crear una página web para mi restaurante')">
+                🍽️ Página web para restaurante
               </div>
               <div class="suggestion" (click)="usarSugerencia('Necesito un sistema de gestión empresarial')">
-                📊 "Necesito un sistema de gestión"
+                📊 Sistema de gestión empresarial
+              </div>
+              <div class="suggestion" (click)="usarSugerencia('Quiero desarrollar un e-commerce completo')">
+                🛒 E-commerce completo
               </div>
             </div>
           </div>
           
-          <!-- Loader mientras procesa -->
           <div *ngIf="mensaje.mostrarLoader" class="processing-status">
             <div class="loader"></div>
-            <span>Procesando tu mensaje...</span>
+            <span>Analizando con IA...</span>
           </div>
         </div>
       </ng-container>
 
-      <!-- Mensaje del usuario -->
       <ng-container *ngIf="mensaje.role === 'user'">
         <div class="message-content">
           <p>{{ mensaje.content }}</p>
@@ -58,28 +62,67 @@
       </ng-container>
     </div>
 
+    <div *ngIf="analisisCompletado && mostrarResumen" class="action-container">
+      <div class="action-card">
+        <div class="action-icon">🚀</div>
+        <div class="action-content">
+          <h4>Listo para publicar</h4>
+          <p>Tu proyecto está completamente analizado con {{ proyectoAnalizado?.subtareas?.length || 0 }} sub-tareas generadas.</p>
+          <button 
+            class="btn-publicar" 
+            (click)="publicarProyecto()"
+            [disabled]="enviando"
+          >
+            <span *ngIf="!enviando">Publicar Proyecto</span>
+            <span *ngIf="enviando">Publicando...</span>
+          </button>
+          <button 
+            class="btn-cancelar" 
+            (click)="cancelar()"
+            [disabled]="enviando"
+          >
+            Volver después
+          </button>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Chat Input -->
   <div class="chat-input-container">
+    <div class="chat-status" *ngIf="proyectoId && !analisisCompletado">
+      <span class="status-dot"></span>
+      <span class="status-text">Chat activo · Sin límite de preguntas</span>
+    </div>
+
+    <div class="chat-status completado" *ngIf="analisisCompletado">
+      <span class="status-dot completado"></span>
+      <span class="status-text">Análisis completado · Listo para publicar</span>
+    </div>
+
     <div class="chat-form">
       <div class="input-group">
         <textarea 
           [(ngModel)]="mensajeUsuario"
-          placeholder="Escribe tu mensaje aquí..."
+          placeholder="Escribe tu respuesta o pregunta..."
           (keydown)="onEnterPress($event)"
-          [disabled]="enviando || conversacionFinalizada"
+          [disabled]="enviando || analisisCompletado"
           rows="1"
         ></textarea>
         <button 
           type="button"
           (click)="enviarMensaje()"
-          [disabled]="!mensajeUsuario.trim() || enviando || conversacionFinalizada"
+          [disabled]="!mensajeUsuario.trim() || enviando || analisisCompletado"
           class="send-button"
         >
           <span *ngIf="!enviando">📤</span>
           <span *ngIf="enviando" class="spinner">⏳</span>
         </button>
+      </div>
+      
+      <div class="input-hint" *ngIf="!analisisCompletado">
+        <small>Presiona Enter para enviar · Shift+Enter para nueva línea</small>
       </div>
     </div>
   </div>

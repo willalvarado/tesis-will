@@ -56,11 +56,19 @@ export const routes: Routes = [
     path: 'cliente/mi-perfil', 
     loadComponent: () => import('./features/cliente/mi-perfil/mi-perfil.component').then(m => m.MiPerfilComponent) 
   },
-  // ✅ NUEVA RUTA DEL CHAT
   { 
     path: 'cliente/chat/:id', 
     loadComponent: () => import('./features/cliente/chat-proyecto/chat-proyecto.component').then(m => m.ChatProyectoComponent) 
   },
+  // 🆕 NUEVA RUTA - DETALLE DE PROYECTO CON SUB-TAREAS
+  { 
+    path: 'cliente/proyecto/:id', 
+    loadComponent: () => import('./features/cliente/detalle-proyecto/detalle-proyecto.component').then(m => m.DetalleProyectoComponent) 
+  },
+  { 
+  path: 'cliente/subtarea/:id', 
+  loadComponent: () => import('./features/cliente/chat-subtarea/chat-subtarea.component').then(m => m.ChatSubtareaComponent) 
+},
 
   // === RUTAS VENDEDOR ===
   { 
@@ -80,13 +88,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/vendedor/mi-perfil/mi-perfil.component').then(m => m.MiPerfilComponent) 
   },
   { 
-  path: 'vendedor/chat/:id', 
-  loadComponent: () => import('./features/vendedor/chat-proyecto/chat-proyecto.component').then(m => m.ChatProyectoVendedorComponent) 
-},
-{ 
-  path: 'vendedor/historial', 
-  loadComponent: () => import('./features/vendedor/historial/historial.component').then(m => m.HistorialVendedorComponent) 
-},
+    path: 'vendedor/chat/:id', 
+    loadComponent: () => import('./features/vendedor/chat-proyecto/chat-proyecto.component').then(m => m.ChatProyectoVendedorComponent) 
+  },
+  { 
+    path: 'vendedor/historial', 
+    loadComponent: () => import('./features/vendedor/historial/historial.component').then(m => m.HistorialVendedorComponent) 
+  },
 
   // Redirección para rutas no encontradas
   { path: '**', redirectTo: '' }

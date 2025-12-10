@@ -2,10 +2,9 @@
 import os
 import json
 from openai import OpenAI
-from dotenv import load_dotenv
-from typing import List, Dict, Optional
+from typing import List, Dict
 
-load_dotenv()
+# Configuración de OpenAI
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ========================================
@@ -17,110 +16,77 @@ ESPECIALIDADES_DETALLADAS = {
     "CONSULTORIA_HARDWARE": "Consultoría en hardware",
     "CONSULTORIA_SOFTWARE": "Consultoría en software",
     "DESARROLLO_MEDIDA": "Desarrollo de software a medida",
-    "SOFTWARE_EMPAQUETADO": "Desarrollo y producción de software empaquetado",
-    "ACTUALIZACION_SOFTWARE": "Actualización y adaptación de software",
-    "HOSTING": "Servicios de alojamiento de datos (hosting)",
-    "PROCESAMIENTO_DATOS": "Servicios de procesamiento de datos",
+    "SOFTWARE_EMPAQUETADO": "Software empaquetado",
+    "ACTUALIZACION_SOFTWARE": "Actualización de software",
+    "HOSTING": "Hosting",
+    "PROCESAMIENTO_DATOS": "Procesamiento de datos",
     "CLOUD_COMPUTING": "Servicios en la nube (cloud computing)",
-    "RECUPERACION_DESASTRES": "Servicios de recuperación ante desastres",
+    "RECUPERACION_DESASTRES": "Recuperación ante desastres",
     "CIBERSEGURIDAD": "Servicios de ciberseguridad",
     "CAPACITACION_TI": "Capacitación en TI"
 }
 
+ESPECIALIDADES_VALIDAS = list(ESPECIALIDADES_DETALLADAS.keys())
+
 # ========================================
-# PROMPT MEJORADO PARA CHAT SIN LÍMITES
+# SYSTEM PROMPT
 # ========================================
 
-SYSTEM_PROMPT_ANALISIS = """
-Eres un Analista de Proyectos de TI experto que trabaja para Conecta Solutions, una plataforma que conecta clientes con vendedores especializados.
+SYSTEM_PROMPT_ANALISIS = f"""Eres un analista experto de proyectos de TI de Conecta Solutions.
 
-🎯 TU MISIÓN:
-Ayudar al cliente a definir su proyecto de forma COMPLETA y DETALLADA mediante un diálogo natural y profundo.
+Tu trabajo es ayudar al cliente a definir su proyecto mediante una conversación profunda y detallada.
 
-📋 INFORMACIÓN QUE DEBES CAPTURAR:
-1. **Problema u objetivo**: ¿Qué necesita resolver o lograr?
-2. **Funcionalidades clave**: Características principales del sistema/servicio
-3. **Usuarios finales**: ¿Quién usará el producto/servicio?
-4. **Requisitos técnicos**: Plataformas, integraciones, tecnologías preferidas
-5. **Escala**: Volumen de usuarios, datos, transacciones
-6. **Plazo**: Urgencia y fechas importantes
-7. **Presupuesto**: Rango de inversión disponible
-8. **Criterios de éxito**: ¿Cómo medirá el éxito del proyecto?
+🎯 NO HAY LÍMITE DE PREGUNTAS. Profundiza todo lo necesario hasta tener información completa.
 
-🔑 REGLAS IMPORTANTES:
-- **NO hay límite de preguntas** - profundiza todo lo necesario
-- Sé amigable, profesional y conversacional 😊
-- Haz preguntas abiertas que inviten a detallar
-- Si la respuesta es vaga, pide ejemplos concretos
-- Ofrece opciones cuando sea útil
-- Adapta tu estilo al del cliente (técnico o no técnico)
-- Usa ejemplos para clarificar conceptos
-- Al final de cada mensaje, pregunta: "¿Está completo o profundizamos más?"
+📋 INFORMACIÓN A CAPTURAR:
 
-📊 ESPECIALIDADES DISPONIBLES:
-- Consultoría en desarrollo de sistemas
-- Consultoría en hardware/software
-- Desarrollo de software a medida
-- Software empaquetado
-- Hosting y procesamiento de datos
-- Cloud computing
-- Ciberseguridad
-- Recuperación ante desastres
-- Capacitación en TI
+1. **Problema u objetivo**: ¿Qué quiere lograr?
+2. **Funcionalidades clave**: Características específicas
+3. **Usuarios finales**: ¿Quiénes usarán el sistema?
+4. **Requisitos técnicos**: Tecnologías, plataformas
+5. **Escala**: Usuarios esperados, volumen
+6. **Plazo**: Tiempo disponible
+7. **Presupuesto**: Rango de inversión
+8. **Criterios de éxito**: ¿Cómo se medirá?
 
-🎯 CRITERIO DE FINALIZACIÓN:
-Solo finaliza cuando:
-1. Tengas TODA la información detallada
-2. El cliente confirme explícitamente que está satisfecho
-3. Puedas descomponer el proyecto en sub-tareas técnicas específicas
+🔄 FLUJO:
+1. Haz preguntas profundas
+2. Si falta información, profundiza más
+3. Al final pregunta: "¿Está completo o profundizamos más?"
+4. Solo cuando tengas TODO, genera el proyecto
 
 📤 CUANDO FINALICES:
+
 Responde con este JSON (y solo este JSON, sin texto adicional):
-```json
-{
+{{
   "finalizado": true,
-  "proyecto": {
-    "titulo": "Título claro y descriptivo del proyecto",
-    "historia_usuario": "Como [tipo de usuario], quiero [funcionalidad], para [beneficio]",
-    "descripcion_completa": "Descripción técnica detallada de todo el proyecto (puede ser muy larga)",
-    "criterios_aceptacion": [
-      "Criterio 1 específico y medible",
-      "Criterio 2 específico y medible",
-      "Criterio 3 específico y medible"
-    ],
+  "proyecto": {{
+    "titulo": "...",
+    "historia_usuario": "Como [rol], quiero [objetivo], para [beneficio]",
+    "descripcion_completa": "...",
+    "criterios_aceptacion": ["...", "...", "..."],
     "presupuesto_estimado": 5000,
     "tiempo_estimado_dias": 60,
     "subtareas": [
-      {
+      {{
         "codigo": "TASK-001",
-        "titulo": "Título de la sub-tarea",
-        "descripcion": "Descripción técnica detallada",
+        "titulo": "...",
+        "descripcion": "...",
         "especialidad": "DESARROLLO_MEDIDA",
         "prioridad": "ALTA",
         "estimacion_horas": 40,
         "dependencias": []
-      }
+      }}
     ]
-  }
-}
-```
+  }}
+}}
 
-💬 ESTILO DE CONVERSACIÓN:
-- Si el cliente da mucha información: "¡Excelente! Entiendo que necesitas [resumir]. Déjame profundizar en..."
-- Si la respuesta es corta: "Perfecto, para asegurarme de entender bien..."
-- Usa bullets cuando listes opciones
-- Termina siempre con una pregunta abierta o "¿Algo más que agregar sobre esto?"
-
-🚫 NO HAGAS:
-- No asumas información no mencionada
-- No limites las preguntas a un número fijo
-- No finalices hasta que el cliente confirme
-- No uses jerga técnica con clientes no técnicos
+Especialidades: {', '.join(ESPECIALIDADES_VALIDAS)}
+Prioridades: ALTA, MEDIA, BAJA
 """
 
-
 # ========================================
-# FUNCIÓN PRINCIPAL DE CHAT
+# FUNCIÓN PRINCIPAL
 # ========================================
 
 def chat_analisis_proyecto(
@@ -128,19 +94,7 @@ def chat_analisis_proyecto(
     cliente_id: int
 ) -> Dict:
     """
-    Chat conversacional sin límites para análisis profundo de proyectos.
-    
-    Args:
-        mensajes_historial: Lista de mensajes [{"role": "user"/"assistant", "content": "..."}]
-        cliente_id: ID del cliente
-    
-    Returns:
-        dict con:
-        - exito: bool
-        - respuesta: str (mensaje del asistente)
-        - finalizado: bool
-        - proyecto: dict (si finalizado=True)
-        - tokens_usados: int
+    Gestiona la conversación con OpenAI para analizar un proyecto.
     """
     try:
         # Preparar mensajes
@@ -148,155 +102,146 @@ def chat_analisis_proyecto(
             {"role": "system", "content": SYSTEM_PROMPT_ANALISIS}
         ] + mensajes_historial
         
-        print(f"💬 Analizando proyecto - {len(mensajes_historial)} mensajes en historial")
+        print(f"📤 Enviando {len(mensajes_historial)} mensajes a OpenAI...")
+        
+        # 🔥 FORZAR JSON MODE después de 4 mensajes
+        usar_json_mode = len(mensajes_historial) >= 4
         
         # Llamada a OpenAI
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=mensajes_completos,
             temperature=0.7,
-            max_tokens=1500,  # Más tokens para respuestas detalladas
-            response_format={"type": "json_object"} if len(mensajes_historial) > 6 else None  # JSON solo si hay suficiente contexto
+            max_tokens=2000,
+            response_format={"type": "json_object"} if usar_json_mode else None
         )
         
-        respuesta = response.choices[0].message.content
+        respuesta_texto = response.choices[0].message.content.strip()
         tokens = response.usage.total_tokens
         
-        print(f"✅ Respuesta generada - {tokens} tokens usados")
+        print(f"📥 Respuesta recibida: {tokens} tokens")
+        print(f"📄 Contenido (primeros 200 chars): {respuesta_texto[:200]}...")
         
-        # Intentar parsear como JSON (si finalizó)
-        finalizado = False
-        proyecto = None
-        
+        # 🔥 INTENTAR PARSEAR JSON
         try:
-            data = json.loads(respuesta)
-            if data.get("finalizado"):
-                finalizado = True
-                proyecto = data.get("proyecto")
+            datos = json.loads(respuesta_texto)
+            print(f"✅ JSON parseado correctamente")
+            print(f"🔍 Keys en JSON: {list(datos.keys())}")
+            
+            # Verificar si finalizó
+            if datos.get("finalizado") == True or datos.get("finalizado") == "true":
+                print(f"🎉 Análisis FINALIZADO detectado")
                 
-                # Validar que tenga las sub-tareas
-                if not proyecto.get("subtareas") or len(proyecto["subtareas"]) == 0:
-                    print("⚠️ Proyecto finalizado pero sin sub-tareas, continuando análisis...")
-                    finalizado = False
-                    proyecto = None
-                    respuesta = "Tengo casi toda la información. ¿Podrías confirmar si hay algo más específico que necesites o si con esto podemos proceder?"
-                else:
-                    print(f"🎉 Proyecto finalizado - {len(proyecto['subtareas'])} sub-tareas generadas")
-                    respuesta = "✨ ¡Perfecto! He analizado tu proyecto y lo he descompuesto en tareas específicas. Puedes revisarlo y publicarlo para que los vendedores especializados puedan postularse."
+                if "proyecto" in datos and datos["proyecto"]:
+                    proyecto = datos["proyecto"]
+                    print(f"✅ Proyecto encontrado: {proyecto.get('titulo', 'Sin título')}")
+                    print(f"📋 Sub-tareas: {len(proyecto.get('subtareas', []))}")
                     
-        except json.JSONDecodeError:
-            # No es JSON, es una pregunta normal del chat
-            print("💬 Respuesta conversacional normal")
+                    return {
+                        "exito": True,
+                        "respuesta": "✨ ¡Perfecto! He analizado tu proyecto y lo he descompuesto en tareas específicas.",
+                        "finalizado": True,
+                        "proyecto": proyecto,
+                        "tokens_usados": tokens,
+                        "costo_estimado": tokens * 0.00015 / 1000
+                    }
+                else:
+                    print(f"⚠️ JSON indica finalizado=true pero falta el proyecto")
+            else:
+                print(f"ℹ️ Análisis NO finalizado (continuando conversación)")
+                
+        except json.JSONDecodeError as e:
+            print(f"⚠️ No es JSON válido (probablemente conversación normal): {e}")
+            # No es JSON, es conversación normal
+        except Exception as e:
+            print(f"❌ Error parseando JSON: {e}")
         
+        # 🔥 Respuesta normal (conversación continúa)
         return {
             "exito": True,
-            "respuesta": respuesta,
-            "finalizado": finalizado,
-            "proyecto": proyecto,
+            "respuesta": respuesta_texto,
+            "finalizado": False,
             "tokens_usados": tokens,
-            "costo_estimado": f"${(tokens * 0.00015 / 1000):.6f}"
+            "costo_estimado": tokens * 0.00015 / 1000
         }
         
     except Exception as e:
         print(f"❌ Error en chat_analisis_proyecto: {e}")
+        import traceback
+        traceback.print_exc()
+        
         return {
             "exito": False,
             "error": str(e),
-            "respuesta": "Lo siento, hubo un error procesando tu mensaje. ¿Podrías intentarlo de nuevo?",
-            "finalizado": False
+            "respuesta": "Lo siento, hubo un error procesando tu mensaje. Por favor intenta de nuevo.",
+            "finalizado": False,
+            "tokens_usados": 0,
+            "costo_estimado": 0
         }
 
 
-# ========================================
-# FUNCIÓN PARA REFINAR SUB-TAREAS
-# ========================================
-
 def refinar_subtareas(proyecto_data: Dict) -> Dict:
-    """
-    Refina y valida las sub-tareas generadas por el análisis.
-    Asegura que tengan toda la información necesaria.
-    """
+    """Valida sub-tareas"""
     try:
         subtareas = proyecto_data.get("subtareas", [])
+        codigos_vistos = set()
         
-        # Validar cada sub-tarea
-        subtareas_validadas = []
-        for i, tarea in enumerate(subtareas, 1):
-            # Asegurar código único
-            if not tarea.get("codigo"):
-                tarea["codigo"] = f"TASK-{str(i).zfill(3)}"
+        for i, tarea in enumerate(subtareas):
+            codigo = tarea.get("codigo", f"TASK-{str(i+1).zfill(3)}")
+            if codigo in codigos_vistos:
+                codigo = f"TASK-{str(i+1).zfill(3)}"
+            codigos_vistos.add(codigo)
+            tarea["codigo"] = codigo
             
-            # Validar especialidad
-            if tarea.get("especialidad") not in ESPECIALIDADES_DETALLADAS:
-                print(f"⚠️ Especialidad inválida en {tarea['codigo']}: {tarea.get('especialidad')}")
-                tarea["especialidad"] = "DESARROLLO_MEDIDA"  # Default
+            if tarea.get("especialidad") not in ESPECIALIDADES_VALIDAS:
+                tarea["especialidad"] = "DESARROLLO_MEDIDA"
             
-            # Asegurar prioridad
             if tarea.get("prioridad") not in ["ALTA", "MEDIA", "BAJA"]:
                 tarea["prioridad"] = "MEDIA"
             
-            # Asegurar estimación
-            if not tarea.get("estimacion_horas") or tarea["estimacion_horas"] <= 0:
-                tarea["estimacion_horas"] = 40  # Default 1 semana
+            if not isinstance(tarea.get("estimacion_horas"), (int, float)) or tarea["estimacion_horas"] <= 0:
+                tarea["estimacion_horas"] = 40
             
-            subtareas_validadas.append(tarea)
+            if not isinstance(tarea.get("dependencias"), list):
+                tarea["dependencias"] = []
         
-        proyecto_data["subtareas"] = subtareas_validadas
-        proyecto_data["total_subtareas"] = len(subtareas_validadas)
+        proyecto_data["subtareas"] = subtareas
         
-        print(f"✅ {len(subtareas_validadas)} sub-tareas validadas")
-        
-        return {
-            "exito": True,
-            "proyecto": proyecto_data
-        }
+        return {"exito": True, "proyecto": proyecto_data}
         
     except Exception as e:
-        print(f"❌ Error refinando sub-tareas: {e}")
-        return {
-            "exito": False,
-            "error": str(e)
-        }
+        return {"exito": False, "error": str(e)}
 
-
-# ========================================
-# FUNCIÓN PARA GENERAR RESUMEN EJECUTIVO
-# ========================================
 
 def generar_resumen_ejecutivo(proyecto_data: Dict) -> str:
-    """
-    Genera un resumen ejecutivo del proyecto para mostrar al cliente.
-    """
+    """Genera resumen del proyecto"""
     try:
+        titulo = proyecto_data.get("titulo", "Proyecto")
+        presupuesto = proyecto_data.get("presupuesto_estimado", 0)
+        dias = proyecto_data.get("tiempo_estimado_dias", 0)
         subtareas = proyecto_data.get("subtareas", [])
         
-        # Agrupar por especialidad
-        especialidades_usadas = {}
+        resumen = f"\n📋 **Resumen del Proyecto: {titulo}**\n\n"
+        resumen += f"📝 **Descripción:**\n{proyecto_data.get('descripcion_completa', '')[:200]}...\n\n"
+        resumen += f"💰 **Presupuesto Estimado:** ${presupuesto:,.2f}\n"
+        resumen += f"⏱️ **Tiempo Estimado:** {dias} días\n\n"
+        resumen += f"🎯 **Sub-tareas ({len(subtareas)}):**\n\n"
+        
+        por_especialidad = {}
         for tarea in subtareas:
-            esp = tarea["especialidad"]
-            if esp not in especialidades_usadas:
-                especialidades_usadas[esp] = []
-            especialidades_usadas[esp].append(tarea["titulo"])
+            esp = tarea.get("especialidad", "OTRO")
+            if esp not in por_especialidad:
+                por_especialidad[esp] = []
+            por_especialidad[esp].append(tarea)
         
-        resumen = f"""
-📋 **Resumen del Proyecto: {proyecto_data['titulo']}**
-
-📝 **Descripción:**
-{proyecto_data['descripcion_completa'][:200]}...
-
-💰 **Presupuesto Estimado:** ${proyecto_data['presupuesto_estimado']:,.2f}
-⏱️ **Tiempo Estimado:** {proyecto_data['tiempo_estimado_dias']} días
-
-🎯 **Sub-tareas ({len(subtareas)}):**
-"""
-        
-        for esp, tareas in especialidades_usadas.items():
+        for esp, tareas in por_especialidad.items():
             nombre_esp = ESPECIALIDADES_DETALLADAS.get(esp, esp)
-            resumen += f"\n**{nombre_esp}:**\n"
+            resumen += f"**{nombre_esp}:**\n"
             for tarea in tareas:
-                resumen += f"  • {tarea}\n"
+                resumen += f"  • {tarea.get('titulo', '')}\n"
+            resumen += "\n"
         
         return resumen
         
     except Exception as e:
-        return f"Error generando resumen: {str(e)}"
+        return "Error generando resumen"

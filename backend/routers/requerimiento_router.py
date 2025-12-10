@@ -16,6 +16,67 @@ router = APIRouter(
     tags=["Requerimientos"]
 )
 
+# ... todo tu código existente ...
+
+# 🆕 NUEVO ENDPOINT: Obtener proyectos en análisis o publicados
+@router.get("/proyectos-cliente/{cliente_id}")
+def obtener_proyectos_en_analisis_publicado(cliente_id: int, db: Session = Depends(get_db)):
+    """
+    Obtiene los proyectos del cliente que están en ANALISIS o PUBLICADO.
+    Estos son proyectos creados con IA que están esperando vendedores.
+    """
+    from modelos.proyecto_modelo import Proyecto, FaseProyecto, SubTarea, EstadoSubTarea
+    
+    # Proyectos en análisis o publicados
+    proyectos = db.query(Proyecto).filter(
+        Proyecto.cliente_id == cliente_id,
+        Proyecto.fase.in_([FaseProyecto.ANALISIS, FaseProyecto.PUBLICADO])
+    ).order_by(Proyecto.created_at.desc()).all()
+    
+    resultado = []
+    for proyecto in proyectos:
+        # Contar sub-tareas
+        total_subtareas = db.query(SubTarea).filter(
+            SubTarea.proyecto_id == proyecto.id
+        ).count()
+        
+        subtareas_completadas = db.query(SubTarea).filter(
+            SubTarea.proyecto_id == proyecto.id,
+            SubTarea.estado == EstadoSubTarea.COMPLETADO
+        ).count()
+        
+        # Parsear criterios de aceptación si existen
+        criterios = []
+        if proyecto.criterios_aceptacion:
+            try:
+                import json
+                # Si es string JSON, parsearlo
+                if isinstance(proyecto.criterios_aceptacion, str):
+                    criterios = json.loads(proyecto.criterios_aceptacion)
+                # Si ya es lista, usarla directamente
+                elif isinstance(proyecto.criterios_aceptacion, list):
+                    criterios = proyecto.criterios_aceptacion
+            except:
+                criterios = []
+        
+        resultado.append({
+            "id": proyecto.id,
+            "titulo": proyecto.titulo,
+            "descripcion": proyecto.descripcion,
+            "fase": proyecto.fase.value if hasattr(proyecto.fase, 'value') else str(proyecto.fase),
+            "total_subtareas": total_subtareas,
+            "subtareas_completadas": subtareas_completadas,
+            "historia_usuario": proyecto.historia_usuario,
+            "criterios_aceptacion": criterios,
+            "diagrama_flujo": proyecto.diagrama_flujo,
+            "created_at": proyecto.created_at,
+            "updated_at": proyecto.updated_at
+        })
+    
+    return resultado
+
+# ... resto de tu código ...
+
 # 🔥 FUNCIÓN DE MAPEO: Nombre amigable → Código ENUM
 def nombre_amigable_a_enum(nombre: str) -> str:
     """

@@ -6,11 +6,14 @@ import enum
 
 # Enum para los estados del requerimiento
 class EstadoRequerimiento(str, enum.Enum):
-    PENDIENTE = "pendiente"
-    ASIGNADO = "asignado"
-    EN_PROCESO = "en_proceso"
-    COMPLETADO = "completado"
-    CANCELADO = "cancelado"
+    PENDIENTE = "PENDIENTE"
+    ANALISIS = "ANÁLISIS"  # IA está procesando la solicitud
+    PUBLICADO = "PUBLICADO"  # Esperando ofertas de vendedores
+    CON_OFERTAS = "CON_OFERTAS"  # Hay ofertas pendientes de revisión
+    ASIGNADO = "ASIGNADO"
+    ACEPTADO = "ACEPTADO"  # Cliente aceptó una oferta → se convirtió en proyecto
+    RECHAZADO = "RECHAZADO"  # Cliente rechazó todas las ofertas
+    CANCELADO = "CANCELADO"  # Cliente canceló el requerimiento
 
 # Enum para las especialidades CPC (Clasificación Central de Productos)
 class EspecialidadEnum(str, enum.Enum):
@@ -41,14 +44,19 @@ class Requerimiento(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     cliente_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
-    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    vendedor_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)  # NULL hasta que se acepte oferta
     
     # Información del requerimiento
     titulo = Column(String(200), nullable=False)
-    mensaje = Column(Text, nullable=False)
-    descripcion = Column(Text, nullable=True)
+    mensaje = Column(Text, nullable=False)  # Mensaje original del cliente
+    descripcion = Column(Text, nullable=True)  # Descripción procesada por la IA
     especialidad = Column(Enum(EspecialidadEnum), default=EspecialidadEnum.OTRO)
-    estado = Column(Enum(EstadoRequerimiento), default=EstadoRequerimiento.PENDIENTE)
+    estado = Column(Enum(EstadoRequerimiento), default=EstadoRequerimiento.ANALISIS)
+    
+    # 🆕 Campos adicionales generados por la IA
+    historia_usuario = Column(Text, nullable=True)  # Historia de usuario generada
+    criterios_aceptacion = Column(Text, nullable=True)  # JSON con criterios
+    diagrama_flujo = Column(Text, nullable=True)  # Mermaid diagram
     
     # Timestamps
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
@@ -57,3 +65,12 @@ class Requerimiento(Base):
     # Relaciones
     cliente = relationship("UsuarioDB", foreign_keys=[cliente_id], back_populates="requerimientos_creados")
     vendedor = relationship("UsuarioDB", foreign_keys=[vendedor_id], back_populates="requerimientos_asignados")
+    
+    # 🔥 CORREGIDO: Usar string "Oferta" en lugar de clase directa
+      #  ofertas = relationship("Oferta", back_populates="requerimiento", cascade="all, delete-orphan")
+    
+    # 🔥 CORREGIDO: Usar string "Proyecto"
+    proyecto = relationship("Proyecto", back_populates="requerimiento", uselist=False)
+
+    def __repr__(self):
+        return f"<Requerimiento(id={self.id}, titulo='{self.titulo}', estado='{self.estado}')>"

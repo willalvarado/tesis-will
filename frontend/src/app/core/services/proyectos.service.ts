@@ -10,9 +10,9 @@ export interface Archivo {
 
 export interface Proyecto {
   id: number;
-  requerimiento_id: number;
+  requerimiento_id?: number;
   cliente_id: number;
-  vendedor_id: number;
+  vendedor_id?: number;
   titulo: string;
   descripcion: string | null;
   especialidad: string;
@@ -25,6 +25,15 @@ export interface Proyecto {
   fecha_completado: string | null;
   created_at: string;
   updated_at: string;
+  
+  // 🆕 CAMPOS NUEVOS DEL SISTEMA CON IA
+  total_subtareas?: number;
+  subtareas_completadas?: number;
+  fase?: string; // ANÁLISIS, PUBLICADO, EN_PROGRESO, COMPLETADO, CANCELADO
+  historia_usuario?: string;
+  criterios_aceptacion?: string[];
+  diagrama_flujo?: string;
+  
   // Para el frontend agregamos estos campos que se calcularán localmente
   archivos?: Archivo[];
   vendedor?: {

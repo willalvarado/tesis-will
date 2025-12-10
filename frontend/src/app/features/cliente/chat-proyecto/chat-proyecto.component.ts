@@ -9,7 +9,8 @@ import { ArchivosService, Archivo } from '../../../core/services/archivos.servic
 
 interface MensajeUI {
   id: number;
-  proyectoId: number;
+  proyectoId?: number;  // 🔥 Ahora OPCIONAL
+  subtareaId?: number;  // 🔥 NUEVO: También opcional
   remitente: 'cliente' | 'vendedor';
   contenido: string;
   fecha: Date;
@@ -98,7 +99,8 @@ export class ChatProyectoComponent implements OnInit, OnDestroy {
       if (!existe) {
         this.mensajes.push({
           id: mensaje.id || Date.now(),
-          proyectoId: mensaje.proyecto_id,
+          proyectoId: mensaje.proyecto_id,     // ✅ Ahora puede ser undefined
+          subtareaId: mensaje.subtarea_id,     // ✅ Nuevo campo
           remitente: mensaje.remitente_tipo,
           contenido: mensaje.contenido,
           fecha: mensaje.created_at ? new Date(mensaje.created_at) : new Date(),
@@ -117,7 +119,8 @@ export class ChatProyectoComponent implements OnInit, OnDestroy {
         console.log('✅ Mensajes cargados:', mensajes);
         this.mensajes = mensajes.map(m => ({
           id: m.id || 0,
-          proyectoId: m.proyecto_id,
+          proyectoId: m.proyecto_id,    // ✅ Ahora puede ser undefined
+          subtareaId: m.subtarea_id,    // ✅ Nuevo campo
           remitente: m.remitente_tipo,
           contenido: m.contenido,
           fecha: m.created_at ? new Date(m.created_at) : new Date(),

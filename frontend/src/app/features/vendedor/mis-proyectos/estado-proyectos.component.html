@@ -54,7 +54,7 @@
             <span class="label">📅 Inicio:</span>
             <span class="value">{{ formatearFecha(proyecto.fechaInicio) }}</span>
           </div>
-          <div class="info-item" colspan="2">
+          <div class="info-item">
             <span class="label">⏰ Fecha de Entrega:</span>
             <input 
               type="date" 
@@ -110,8 +110,9 @@
             <span class="value pendiente">${{ proyecto.presupuesto - proyecto.pagado }}</span>
           </div>
         </div>
+      </div>
+    </div>
 
-        
     <!-- Empty State -->
     <div class="empty-state" *ngIf="proyectos.length === 0 && !cargando">
       <div class="empty-icon">📋</div>
