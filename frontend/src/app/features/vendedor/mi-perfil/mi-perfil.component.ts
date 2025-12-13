@@ -595,28 +595,58 @@ export class MiPerfilComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    console.log('🚀 MI-PERFIL: ngOnInit ejecutado');
+    console.log('🔍 MI-PERFIL: LocalStorage usuario:', localStorage.getItem('usuario'));
     this.cargarDatosVendedor();
   }
 
   cargarDatosVendedor(): void {
+    console.log('📞 MI-PERFIL: cargarDatosVendedor() llamado');
+    
     const usuario = localStorage.getItem('usuario');
-    if (!usuario) return;
+    console.log('👤 MI-PERFIL: Usuario en localStorage:', usuario);
+    
+    if (!usuario) {
+      console.error('❌ MI-PERFIL: No hay usuario en localStorage');
+      return;
+    }
     
     const vendedorId = JSON.parse(usuario).id;
+    console.log('🆔 MI-PERFIL: Vendedor ID:', vendedorId);
 
     this.http.get<any>(`http://localhost:8000/vendedores/${vendedorId}`)
       .subscribe({
         next: (res) => {
-          console.log('📥 Datos del vendedor desde backend:', res);
+          console.log('📥 MI-PERFIL: Datos recibidos del backend:', res);
 
-          // Cargar especialidades
-          if (res.especialidades && Array.isArray(res.especialidades)) {
-            this.especialidades = res.especialidades;
-          } else if (res.especialidades) {
-            this.especialidades = [res.especialidades];
+          // 🔥 PARSEAR ESPECIALIDADES (pueden venir como string JSON o array)
+          if (res.especialidades) {
+            try {
+              // Si es string JSON, parsearlo
+              if (typeof res.especialidades === 'string') {
+                this.especialidades = JSON.parse(res.especialidades);
+                console.log('✅ MI-PERFIL: Especialidades parseadas desde string JSON:', this.especialidades);
+              }
+              // Si ya es array, usarlo directamente
+              else if (Array.isArray(res.especialidades)) {
+                this.especialidades = res.especialidades;
+                console.log('✅ MI-PERFIL: Especialidades recibidas como array:', this.especialidades);
+              }
+              // Si no, convertir a array
+              else {
+                this.especialidades = [res.especialidades];
+                console.log('⚠️ MI-PERFIL: Especialidades convertidas a array:', this.especialidades);
+              }
+            } catch (e) {
+              console.error('❌ MI-PERFIL: Error parseando especialidades:', e);
+              this.especialidades = ['Sin especialidades'];
+            }
           } else {
+            console.warn('⚠️ MI-PERFIL: No hay especialidades en la respuesta');
             this.especialidades = ['Sin especialidades'];
           }
+
+          console.log('✅ MI-PERFIL: Especialidades finales:', this.especialidades);
 
           // Cargar datos del formulario
           this.perfilForm.patchValue({
@@ -629,9 +659,11 @@ export class MiPerfilComponent implements OnInit {
             biografia: res.biografia || '',
             habilidades: res.habilidades || ''
           });
+
+          console.log('✅ MI-PERFIL: Formulario actualizado con valores:', this.perfilForm.value);
         },
         error: (err) => {
-          console.error('❌ Error al cargar datos del vendedor:', err);
+          console.error('❌ MI-PERFIL: Error al cargar datos del vendedor:', err);
           this.mensajeError = 'Error al cargar los datos del perfil';
         }
       });

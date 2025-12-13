@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import datetime
+import json
 
 from database import get_db
 from modelos.proyecto_modelo import SubTarea, EstadoSubTarea
@@ -15,6 +16,51 @@ router = APIRouter(
     prefix="/subtareas",
     tags=["Sub-tareas"]
 )
+
+
+# ========================================
+# 🔥 MAPEO DE ESPECIALIDADES
+# ========================================
+
+# Nombres completos → Códigos (para matching)
+ESPECIALIDADES_NOMBRE_A_CODIGO = {
+    "Consultoría en desarrollo de sistemas": "CONSULTORIA_DESARROLLO",
+    "Consultoría en hardware": "CONSULTORIA_HARDWARE",
+    "Consultoría en software": "CONSULTORIA_SOFTWARE",
+    "Desarrollo de software a medida": "DESARROLLO_MEDIDA",
+    "Desarrollo y producción de software empaquetado": "SOFTWARE_EMPAQUETADO",
+    "Actualización y adaptación de software": "ACTUALIZACION_SOFTWARE",
+    "Servicios de alojamiento de datos (hosting)": "HOSTING",
+    "Servicios de procesamiento de datos": "PROCESAMIENTO_DATOS",
+    "Servicios en la nube (cloud computing)": "CLOUD_COMPUTING",
+    "Servicios de recuperación ante desastres": "RECUPERACION_DESASTRES",
+    "Servicios de ciberseguridad": "CIBERSEGURIDAD",
+    "Capacitación en TI": "CAPACITACION_TI"
+}
+
+# Códigos → Nombres completos (para mostrar)
+ESPECIALIDADES_CODIGO_A_NOMBRE = {v: k for k, v in ESPECIALIDADES_NOMBRE_A_CODIGO.items()}
+
+
+def convertir_especialidades_a_codigos(especialidades_nombres: List[str]) -> List[str]:
+    """
+    Convierte una lista de nombres de especialidades a códigos.
+    Ejemplo: ["Desarrollo de software a medida"] → ["DESARROLLO_MEDIDA"]
+    """
+    codigos = []
+    for nombre in especialidades_nombres:
+        # Buscar coincidencia exacta
+        codigo = ESPECIALIDADES_NOMBRE_A_CODIGO.get(nombre)
+        if codigo:
+            codigos.append(codigo)
+        else:
+            # Si ya viene como código, usarlo directamente
+            if nombre in ESPECIALIDADES_CODIGO_A_NOMBRE:
+                codigos.append(nombre)
+            else:
+                print(f"⚠️ Especialidad no reconocida: {nombre}")
+    
+    return codigos
 
 
 # ========================================
@@ -80,6 +126,9 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
             vendedor = db.query(Vendedor).filter(Vendedor.id == st.vendedor_id).first()
             vendedor_nombre = vendedor.nombre if vendedor else f"Vendedor #{st.vendedor_id}"
         
+        # 🔥 CONVERTIR CÓDIGO A NOMBRE para mostrar
+        especialidad_mostrar = ESPECIALIDADES_CODIGO_A_NOMBRE.get(st.especialidad, st.especialidad)
+        
         resultado.append({
             "id": st.id,
             "proyecto_id": st.proyecto_id,
@@ -89,11 +138,11 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
             "codigo": st.codigo,
             "titulo": st.titulo,
             "descripcion": st.descripcion,
-            "especialidad": st.especialidad,
+            "especialidad": especialidad_mostrar,  # 🔥 NOMBRE COMPLETO
             "vendedor_id": st.vendedor_id,
             "vendedor_nombre": vendedor_nombre,
             "estado": st.estado.value if hasattr(st.estado, 'value') else st.estado,
-            "prioridad": st.prioridad,  # 🔥 Ya es un string, no necesita .value
+            "prioridad": st.prioridad,
             "presupuesto": float(st.presupuesto),
             "pagado": float(st.pagado),
             "estimacion_horas": st.estimacion_horas,
@@ -110,7 +159,7 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
 
 @router.get("/disponibles")
 def obtener_subtareas_disponibles(
-    especialidad: Optional[str] = None,
+    especialidades: Optional[str] = None,  # 🔥 Cambiado a plural
     prioridad: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -118,7 +167,7 @@ def obtener_subtareas_disponibles(
     Obtiene sub-tareas disponibles (sin asignar) de proyectos PUBLICADOS.
     
     Params:
-        - especialidad: Filtrar por especialidad específica
+        - especialidades: Lista de especialidades separadas por coma (nombres completos o códigos)
         - prioridad: ALTA, MEDIA, BAJA
     """
     try:
@@ -131,12 +180,26 @@ def obtener_subtareas_disponibles(
             Proyecto.fase == FaseProyecto.PUBLICADO
         )
         
-        # Filtro por especialidad
-        if especialidad:
-            query = query.filter(SubTarea.especialidad == especialidad)
-            print(f"🔍 Filtrando por especialidad: {especialidad}")
+        # 🔥 FILTRO POR ESPECIALIDADES DEL VENDEDOR
+        if especialidades:
+            # Separar especialidades (pueden venir como nombres o códigos)
+            lista_especialidades = [esp.strip() for esp in especialidades.split(',')]
+            
+            print(f"🔍 Especialidades recibidas del vendedor: {lista_especialidades}")
+            
+            # Convertir NOMBRES a CÓDIGOS
+            codigos_vendedor = convertir_especialidades_a_codigos(lista_especialidades)
+            
+            print(f"🔍 Códigos del vendedor: {codigos_vendedor}")
+            
+            if codigos_vendedor:
+                # Filtrar sub-tareas que tengan CUALQUIERA de estas especialidades
+                query = query.filter(SubTarea.especialidad.in_(codigos_vendedor))
+                print(f"✅ Filtrando sub-tareas con especialidades: {codigos_vendedor}")
+            else:
+                print(f"⚠️ No se pudieron convertir especialidades a códigos")
         
-        # Filtro por prioridad (ahora es string)
+        # Filtro por prioridad
         if prioridad:
             prioridad_upper = prioridad.upper()
             if prioridad_upper in ["ALTA", "MEDIA", "BAJA"]:
@@ -158,12 +221,14 @@ def obtener_subtareas_disponibles(
             SubTarea.created_at.desc()
         ).all()
         
-        print(f"📊 {len(subtareas)} sub-tareas disponibles")
+        print(f"📊 {len(subtareas)} sub-tareas disponibles encontradas")
         
         return agregar_nombres_a_subtareas(subtareas, db)
         
     except Exception as e:
         print(f"❌ Error obteniendo sub-tareas: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -283,6 +348,38 @@ def aceptar_subtarea(
         if not vendedor:
             raise HTTPException(status_code=404, detail="Vendedor no encontrado")
         
+        # 🔥 PARSEAR ESPECIALIDADES DESDE JSON
+        especialidades_vendedor = []
+        if vendedor.especialidades:
+            try:
+                # Si es string JSON, parsearlo
+                if isinstance(vendedor.especialidades, str):
+                    especialidades_vendedor = json.loads(vendedor.especialidades)
+                # Si ya es lista, usarla directamente
+                elif isinstance(vendedor.especialidades, list):
+                    especialidades_vendedor = vendedor.especialidades
+            except json.JSONDecodeError as e:
+                print(f"❌ Error parseando especialidades: {e}")
+                especialidades_vendedor = []
+        
+        print(f"🔍 Especialidades del vendedor (raw): {vendedor.especialidades}")
+        print(f"🔍 Especialidades del vendedor (parseadas): {especialidades_vendedor}")
+        
+        # Convertir nombres a códigos
+        codigos_vendedor = convertir_especialidades_a_codigos(especialidades_vendedor)
+        
+        print(f"🔍 Códigos del vendedor: {codigos_vendedor}")
+        print(f"🔍 Especialidad requerida por sub-tarea: {subtarea.especialidad}")
+        
+        # Verificar que el vendedor tenga la especialidad
+        if subtarea.especialidad not in codigos_vendedor:
+            print(f"⚠️ Vendedor {vendedor.id} no tiene especialidad {subtarea.especialidad}")
+            print(f"   Especialidades del vendedor: {codigos_vendedor}")
+            raise HTTPException(
+                status_code=403, 
+                detail=f"No tienes la especialidad requerida: {ESPECIALIDADES_CODIGO_A_NOMBRE.get(subtarea.especialidad, subtarea.especialidad)}"
+            )
+        
         # Verificar proyecto publicado
         proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
         if proyecto.fase != FaseProyecto.PUBLICADO:
@@ -315,6 +412,8 @@ def aceptar_subtarea(
     except Exception as e:
         db.rollback()
         print(f"❌ Error aceptando sub-tarea: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -433,8 +532,8 @@ def obtener_estadisticas_vendedor(
     except Exception as e:
         print(f"❌ Error obteniendo estadísticas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-    # 🔥 NUEVO ENDPOINT - Obtener detalle completo de una sub-tarea
+
+
 @router.get("/{subtarea_id}")
 def obtener_detalle_subtarea(
     subtarea_id: int,
@@ -475,6 +574,9 @@ def obtener_detalle_subtarea(
                     "especialidades": vendedor.especialidades
                 }
         
+        # 🔥 CONVERTIR CÓDIGO A NOMBRE para mostrar
+        especialidad_mostrar = ESPECIALIDADES_CODIGO_A_NOMBRE.get(subtarea.especialidad, subtarea.especialidad)
+        
         return {
             "exito": True,
             "subtarea": {
@@ -482,7 +584,7 @@ def obtener_detalle_subtarea(
                 "codigo": subtarea.codigo,
                 "titulo": subtarea.titulo,
                 "descripcion": subtarea.descripcion,
-                "especialidad": subtarea.especialidad,
+                "especialidad": especialidad_mostrar,  # 🔥 NOMBRE COMPLETO
                 "estado": subtarea.estado.value if hasattr(subtarea.estado, 'value') else subtarea.estado,
                 "prioridad": subtarea.prioridad,
                 "presupuesto": float(subtarea.presupuesto),

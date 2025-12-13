@@ -16,17 +16,37 @@ ESPECIALIDADES_DETALLADAS = {
     "CONSULTORIA_HARDWARE": "Consultoría en hardware",
     "CONSULTORIA_SOFTWARE": "Consultoría en software",
     "DESARROLLO_MEDIDA": "Desarrollo de software a medida",
-    "SOFTWARE_EMPAQUETADO": "Software empaquetado",
-    "ACTUALIZACION_SOFTWARE": "Actualización de software",
-    "HOSTING": "Hosting",
-    "PROCESAMIENTO_DATOS": "Procesamiento de datos",
+    "SOFTWARE_EMPAQUETADO": "Desarrollo y producción de software empaquetado",
+    "ACTUALIZACION_SOFTWARE": "Actualización y adaptación de software",
+    "HOSTING": "Servicios de alojamiento de datos (hosting)",
+    "PROCESAMIENTO_DATOS": "Servicios de procesamiento de datos",
     "CLOUD_COMPUTING": "Servicios en la nube (cloud computing)",
-    "RECUPERACION_DESASTRES": "Recuperación ante desastres",
+    "RECUPERACION_DESASTRES": "Servicios de recuperación ante desastres",
     "CIBERSEGURIDAD": "Servicios de ciberseguridad",
     "CAPACITACION_TI": "Capacitación en TI"
 }
 
 ESPECIALIDADES_VALIDAS = list(ESPECIALIDADES_DETALLADAS.keys())
+
+# 🔥 ESPECIALIDADES DISPONIBLES (con nombres completos para la IA)
+ESPECIALIDADES_PROMPT = """
+ESPECIALIDADES VÁLIDAS (usa EXACTAMENTE estos nombres):
+1. "Consultoría en desarrollo de sistemas"
+2. "Consultoría en hardware"
+3. "Consultoría en software"
+4. "Desarrollo de software a medida"
+5. "Desarrollo y producción de software empaquetado"
+6. "Actualización y adaptación de software"
+7. "Servicios de alojamiento de datos (hosting)"
+8. "Servicios de procesamiento de datos"
+9. "Servicios en la nube (cloud computing)"
+10. "Servicios de recuperación ante desastres"
+11. "Servicios de ciberseguridad"
+12. "Capacitación en TI"
+
+⚠️ IMPORTANTE: Usa SOLO estos nombres EXACTOS en el campo "especialidad" de cada sub-tarea.
+NO inventes especialidades como "Diseño de interfaz", "Integración de contenido", etc.
+"""
 
 # ========================================
 # SYSTEM PROMPT
@@ -55,34 +75,98 @@ Tu trabajo es ayudar al cliente a definir su proyecto mediante una conversación
 3. Al final pregunta: "¿Está completo o profundizamos más?"
 4. Solo cuando tengas TODO, genera el proyecto
 
+{ESPECIALIDADES_PROMPT}
+
 📤 CUANDO FINALICES:
+
+⚠️⚠️⚠️ REGLAS ABSOLUTAS - NO NEGOCIABLES ⚠️⚠️⚠️
+
+1. SIEMPRE genera MÍNIMO 3 sub-tareas y MÁXIMO 8
+2. CADA sub-tarea DEBE usar una de estas especialidades EXACTAMENTE como está escrita:
+   - "Consultoría en desarrollo de sistemas"
+   - "Consultoría en hardware"
+   - "Consultoría en software"
+   - "Desarrollo de software a medida"
+   - "Desarrollo y producción de software empaquetado"
+   - "Actualización y adaptación de software"
+   - "Servicios de alojamiento de datos (hosting)"
+   - "Servicios de procesamiento de datos"
+   - "Servicios en la nube (cloud computing)"
+   - "Servicios de recuperación ante desastres"
+   - "Servicios de ciberseguridad"
+   - "Capacitación en TI"
+
+3. USA DIFERENTES especialidades para diferentes tareas
+4. NO inventes nombres nuevos
+5. COPIA Y PEGA los nombres EXACTOS de la lista
+
+📋 GUÍA DE ESPECIALIDADES POR TIPO DE TAREA:
+
+Si el proyecto necesita:
+- Crear/programar software → "Desarrollo de software a medida"
+- Configurar servidores/hosting → "Servicios de alojamiento de datos (hosting)"
+- Servicios en la nube (AWS, Azure, Google Cloud) → "Servicios en la nube (cloud computing)"
+- Asesoría/planificación → "Consultoría en software" o "Consultoría en desarrollo de sistemas"
+- Seguridad → "Servicios de ciberseguridad"
+- Actualizaciones → "Actualización y adaptación de software"
+- Procesamiento de datos → "Servicios de procesamiento de datos"
+- Entrenamientos → "Capacitación en TI"
 
 Responde con este JSON (y solo este JSON, sin texto adicional):
 {{
   "finalizado": true,
   "proyecto": {{
-    "titulo": "...",
-    "historia_usuario": "Como [rol], quiero [objetivo], para [beneficio]",
-    "descripcion_completa": "...",
-    "criterios_aceptacion": ["...", "...", "..."],
-    "presupuesto_estimado": 5000,
-    "tiempo_estimado_dias": 60,
+    "titulo": "Página de Promoción para Tienda de Zapatillas",
+    "historia_usuario": "Como dueño de tienda, quiero una página web promocional, para atraer más clientes",
+    "descripcion_completa": "Página web promocional con galería de productos, información de contacto y mapa de ubicación",
+    "criterios_aceptacion": [
+      "La página debe mostrar las zapatillas con imágenes de alta calidad",
+      "Debe incluir información de contacto visible",
+      "Debe ser responsive (verse bien en móviles)"
+    ],
+    "presupuesto_estimado": 500,
+    "tiempo_estimado_dias": 30,
     "subtareas": [
       {{
         "codigo": "TASK-001",
-        "titulo": "...",
-        "descripcion": "...",
-        "especialidad": "DESARROLLO_MEDIDA",
+        "titulo": "Desarrollo del sitio web",
+        "descripcion": "Crear la página web con HTML, CSS y JavaScript. Incluir galería de imágenes, sección de contacto y diseño responsive.",
+        "especialidad": "Desarrollo de software a medida",
         "prioridad": "ALTA",
-        "estimacion_horas": 40,
+        "estimacion_horas": 30,
+        "dependencias": []
+      }},
+      {{
+        "codigo": "TASK-002",
+        "titulo": "Configuración de hosting y dominio",
+        "descripcion": "Contratar servicio de hosting, configurar dominio, subir archivos al servidor y configurar DNS.",
+        "especialidad": "Servicios de alojamiento de datos (hosting)",
+        "prioridad": "ALTA",
+        "estimacion_horas": 6,
+        "dependencias": ["TASK-001"]
+      }},
+      {{
+        "codigo": "TASK-003",
+        "titulo": "Asesoría en diseño y estructura",
+        "descripcion": "Consultoría sobre mejores prácticas de diseño web, usabilidad y estructura de contenido para la tienda.",
+        "especialidad": "Consultoría en software",
+        "prioridad": "MEDIA",
+        "estimacion_horas": 8,
         "dependencias": []
       }}
     ]
   }}
 }}
 
-Especialidades: {', '.join(ESPECIALIDADES_VALIDAS)}
-Prioridades: ALTA, MEDIA, BAJA
+⚠️ VERIFICA ANTES DE RESPONDER:
+✓ ¿Generaste al menos 3 sub-tareas?
+✓ ¿Cada "especialidad" es EXACTAMENTE una de la lista de 12?
+✓ ¿Usaste DIFERENTES especialidades?
+✓ ¿NO inventaste nombres como "Desarrollo de la Página Web"?
+
+SI LA RESPUESTA A CUALQUIERA ES NO, CORRIGE ANTES DE RESPONDER.
+
+Prioridades válidas: ALTA, MEDIA, BAJA
 """
 
 # ========================================
@@ -137,6 +221,10 @@ def chat_analisis_proyecto(
                     print(f"✅ Proyecto encontrado: {proyecto.get('titulo', 'Sin título')}")
                     print(f"📋 Sub-tareas: {len(proyecto.get('subtareas', []))}")
                     
+                    # 🔥 IMPRIMIR ESPECIALIDADES GENERADAS
+                    for i, tarea in enumerate(proyecto.get('subtareas', [])):
+                        print(f"   {i+1}. {tarea.get('titulo')}: '{tarea.get('especialidad')}'")
+                    
                     return {
                         "exito": True,
                         "respuesta": "✨ ¡Perfecto! He analizado tu proyecto y lo he descompuesto en tareas específicas.",
@@ -181,27 +269,66 @@ def chat_analisis_proyecto(
 
 
 def refinar_subtareas(proyecto_data: Dict) -> Dict:
-    """Valida sub-tareas"""
+    """Valida y corrige sub-tareas"""
     try:
         subtareas = proyecto_data.get("subtareas", [])
         codigos_vistos = set()
         
+        # 🔥 MAPEO: Nombre completo → Código interno
+        NOMBRE_A_CODIGO = {
+            "Consultoría en desarrollo de sistemas": "CONSULTORIA_DESARROLLO",
+            "Consultoría en hardware": "CONSULTORIA_HARDWARE",
+            "Consultoría en software": "CONSULTORIA_SOFTWARE",
+            "Desarrollo de software a medida": "DESARROLLO_MEDIDA",
+            "Desarrollo y producción de software empaquetado": "SOFTWARE_EMPAQUETADO",
+            "Actualización y adaptación de software": "ACTUALIZACION_SOFTWARE",
+            "Servicios de alojamiento de datos (hosting)": "HOSTING",
+            "Servicios de procesamiento de datos": "PROCESAMIENTO_DATOS",
+            "Servicios en la nube (cloud computing)": "CLOUD_COMPUTING",
+            "Servicios de recuperación ante desastres": "RECUPERACION_DESASTRES",
+            "Servicios de ciberseguridad": "CIBERSEGURIDAD",
+            "Capacitación en TI": "CAPACITACION_TI"
+        }
+        
         for i, tarea in enumerate(subtareas):
+            # Código único
             codigo = tarea.get("codigo", f"TASK-{str(i+1).zfill(3)}")
             if codigo in codigos_vistos:
                 codigo = f"TASK-{str(i+1).zfill(3)}"
             codigos_vistos.add(codigo)
             tarea["codigo"] = codigo
             
-            if tarea.get("especialidad") not in ESPECIALIDADES_VALIDAS:
-                tarea["especialidad"] = "DESARROLLO_MEDIDA"
+            # 🔥 CONVERTIR ESPECIALIDAD: Nombre → Código
+            especialidad_nombre = tarea.get("especialidad", "")
             
+            # Buscar en el mapeo (coincidencia exacta o parcial)
+            especialidad_codigo = None
+            for nombre, codigo in NOMBRE_A_CODIGO.items():
+                if nombre.lower() == especialidad_nombre.lower():
+                    # Coincidencia exacta
+                    especialidad_codigo = codigo
+                    break
+                elif nombre.lower() in especialidad_nombre.lower() or especialidad_nombre.lower() in nombre.lower():
+                    # Coincidencia parcial
+                    especialidad_codigo = codigo
+            
+            # Si no encontró match, usar DESARROLLO_MEDIDA por defecto
+            if not especialidad_codigo:
+                print(f"⚠️ Especialidad no encontrada: '{especialidad_nombre}' - usando DESARROLLO_MEDIDA")
+                especialidad_codigo = "DESARROLLO_MEDIDA"
+            
+            tarea["especialidad"] = especialidad_codigo
+            print(f"✅ Sub-tarea {i+1}: '{especialidad_nombre}' → {especialidad_codigo}")
+            
+            # Validar prioridad
             if tarea.get("prioridad") not in ["ALTA", "MEDIA", "BAJA"]:
                 tarea["prioridad"] = "MEDIA"
             
+            # Validar estimación
             if not isinstance(tarea.get("estimacion_horas"), (int, float)) or tarea["estimacion_horas"] <= 0:
                 tarea["estimacion_horas"] = 40
             
+            # Validar dependencias
             if not isinstance(tarea.get("dependencias"), list):
                 tarea["dependencias"] = []
         
@@ -210,6 +337,7 @@ def refinar_subtareas(proyecto_data: Dict) -> Dict:
         return {"exito": True, "proyecto": proyecto_data}
         
     except Exception as e:
+        print(f"❌ Error refinando sub-tareas: {e}")
         return {"exito": False, "error": str(e)}
 
 
