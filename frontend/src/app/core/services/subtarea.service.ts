@@ -91,12 +91,12 @@ export class SubtareaService {
   }
 
   // Vendedor - Actualizar progreso
-  actualizarProgreso(subtareaId: number, nuevoEstado: string): Observable<any> {
-    return this.http.put(`${this.apiUrl}/actualizar-progreso`, {
-      subtarea_id: subtareaId,
-      nuevo_estado: nuevoEstado
-    });
-  }
+actualizarProgreso(subtareaId: number, nuevoEstado: string): Observable<any> {
+  return this.http.put(`${this.apiUrl}/actualizar-progreso`, {
+    subtarea_id: subtareaId,
+    estado: nuevoEstado  // 🔥 CAMBIO: nuevo_estado → estado
+  });
+}
 
   // Vendedor - Estadísticas
   obtenerEstadisticasVendedor(vendedorId: number): Observable<any> {

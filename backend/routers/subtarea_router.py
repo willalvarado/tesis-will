@@ -533,7 +533,44 @@ def obtener_estadisticas_vendedor(
         print(f"❌ Error obteniendo estadísticas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+@router.put("/{subtarea_id}/actualizar-presupuesto")
+def actualizar_presupuesto_subtarea(
+    subtarea_id: int,
+    presupuesto: float,
+    db: Session = Depends(get_db)
+):
+    """Actualiza el presupuesto de una sub-tarea (solo vendedor)"""
+    from pydantic import BaseModel
+    
+    class PresupuestoUpdate(BaseModel):
+        presupuesto: float
+    
+    try:
+        subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
+        if not subtarea:
+            raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
+        
+        subtarea.presupuesto = presupuesto
+        subtarea.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(subtarea)
+        
+        print(f"💰 Presupuesto de sub-tarea {subtarea_id} actualizado a ${presupuesto}")
+        
+        return {
+            "exito": True,
+            "mensaje": "Presupuesto actualizado",
+            "subtarea_id": subtarea_id,
+            "nuevo_presupuesto": float(presupuesto)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error actualizando presupuesto: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 @router.get("/{subtarea_id}")
 def obtener_detalle_subtarea(
     subtarea_id: int,
@@ -573,6 +610,8 @@ def obtener_detalle_subtarea(
                     "correo": vendedor.correo,
                     "especialidades": vendedor.especialidades
                 }
+
+                
         
         # 🔥 CONVERTIR CÓDIGO A NOMBRE para mostrar
         especialidad_mostrar = ESPECIALIDADES_CODIGO_A_NOMBRE.get(subtarea.especialidad, subtarea.especialidad)
@@ -611,3 +650,5 @@ def obtener_detalle_subtarea(
     except Exception as e:
         print(f"❌ Error obteniendo detalle de sub-tarea: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    
+    

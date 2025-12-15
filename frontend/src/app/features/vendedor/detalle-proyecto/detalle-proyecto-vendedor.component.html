@@ -1,0 +1,151 @@
+<div class="detalle-container">
+  <!-- Header con botón volver -->
+  <div class="header">
+    <button class="btn-back" (click)="volverAtras()">
+      ← Volver a Mis Proyectos
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="cargando" class="loading">
+    <div class="spinner"></div>
+    <p>Cargando proyecto...</p>
+  </div>
+
+  <!-- Contenido -->
+  <div *ngIf="!cargando && proyecto" class="content">
+    
+    <!-- Información del Proyecto -->
+    <div class="proyecto-card">
+      <div class="proyecto-header">
+        <h1>{{ proyecto.titulo }}</h1>
+        <span class="badge-fase" [style.background]="proyecto.fase === 'COMPLETADO' ? '#10b981' : '#3b82f6'">
+          {{ proyecto.fase }}
+        </span>
+      </div>
+
+      <p class="descripcion">{{ proyecto.descripcion }}</p>
+
+      <div class="proyecto-info">
+        <div class="info-item">
+          <span class="label">👤 Cliente:</span>
+          <span class="value">{{ proyecto.cliente.nombre }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">💰 Presupuesto:</span>
+          <span class="value">\${{ proyecto.presupuesto | number:'1.2-2' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">📅 Inicio:</span>
+          <span class="value">{{ formatearFecha(proyecto.fecha_inicio) }}</span>
+        </div>
+        <div class="info-item">
+          <span class="label">⏰ Entrega:</span>
+          <span class="value">{{ formatearFecha(proyecto.fecha_estimada) }}</span>
+        </div>
+      </div>
+
+      <div class="progreso-section">
+        <div class="progreso-header">
+          <span>Progreso del Proyecto</span>
+          <span class="progreso-numero">
+            {{ proyecto.subtareas_completadas }} / {{ proyecto.total_subtareas }} completadas
+          </span>
+        </div>
+        <div class="progreso-bar">
+          <div 
+            class="progreso-fill" 
+            [style.width.%]="proyecto.total_subtareas > 0 ? (proyecto.subtareas_completadas / proyecto.total_subtareas * 100) : 0"
+          ></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mis Sub-tareas -->
+    <div class="subtareas-section">
+      <h2>📋 Mis Sub-tareas en este Proyecto</h2>
+      
+      <div *ngIf="misSubtareas.length === 0" class="empty-state">
+        <p>No tienes sub-tareas asignadas en este proyecto</p>
+      </div>
+
+      <div *ngIf="misSubtareas.length > 0" class="subtareas-list">
+        <div *ngFor="let subtarea of misSubtareas" class="subtarea-card">
+          
+          <!-- Header de la sub-tarea -->
+          <div class="subtarea-header">
+            <div class="subtarea-info-left">
+              <span class="codigo">{{ subtarea.codigo }}</span>
+              <span 
+                class="badge-prioridad" 
+                [style.background]="getPrioridadColor(subtarea.prioridad)"
+              >
+                {{ subtarea.prioridad }}
+              </span>
+            </div>
+            <span 
+              class="badge-estado" 
+              [style.background]="getEstadoColor(subtarea.estado)"
+            >
+              {{ subtarea.estado }}
+            </span>
+          </div>
+
+          <!-- Contenido de la sub-tarea -->
+          <div class="subtarea-body">
+            <h3>{{ subtarea.titulo }}</h3>
+            <p class="descripcion-subtarea">{{ subtarea.descripcion }}</p>
+
+            <div class="subtarea-meta">
+              <div class="meta-item">
+                <span class="icon">⏱️</span>
+                <span>{{ subtarea.estimacion_horas }}h estimadas</span>
+              </div>
+              <div class="meta-item">
+                <span class="icon">⚙️</span>
+                <span>{{ subtarea.especialidad }}</span>
+              </div>
+            </div>
+
+            <!-- Acciones según el estado -->
+            <div class="subtarea-acciones">
+              
+              <!-- Si está ASIGNADA -->
+              <button 
+                *ngIf="subtarea.estado === 'ASIGNADA'" 
+                class="btn btn-primary"
+                (click)="cambiarEstadoSubtarea(subtarea, 'EN_PROGRESO')"
+              >
+                ▶️ Iniciar
+              </button>
+
+              <!-- Si está EN_PROGRESO -->
+              <button 
+                *ngIf="subtarea.estado === 'EN_PROGRESO'" 
+                class="btn btn-success"
+                (click)="cambiarEstadoSubtarea(subtarea, 'COMPLETADO')"
+              >
+                ✅ Completar
+              </button>
+
+              <!-- Si está COMPLETADO -->
+              <div *ngIf="subtarea.estado === 'COMPLETADO'" class="completado-badge">
+                ✅ Completada
+              </div>
+
+              <!-- Botón de chat (siempre visible) -->
+              <button 
+                class="btn btn-secondary"
+                (click)="abrirChat(subtarea.id)"
+              >
+                💬 Chat
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

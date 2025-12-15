@@ -1,10 +1,12 @@
+# backend/routers/proyecto_router.py
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import func, distinct
 from typing import List
 from database import get_db
-from modelos.proyecto_modelo import Proyecto, EstadoProyecto
-from modelos.usuario_modelo import UsuarioDB  # Importar modelo Usuario
-from Vendedores.vendedor_modelo import Vendedor as VendedorDB  # Usar modelo existente
+from modelos.proyecto_modelo import Proyecto, EstadoProyecto, SubTarea
+from modelos.usuario_modelo import UsuarioDB
+from Vendedores.vendedor_modelo import Vendedor as VendedorDB
 from pydantic import BaseModel
 from datetime import datetime
 from decimal import Decimal
@@ -14,7 +16,7 @@ router = APIRouter(
     tags=["Proyectos"]
 )
 
-# NUEVO: Schema para cliente con nombre
+# Schema para cliente con nombre
 class ClienteInfo(BaseModel):
     id: int
     nombre: str
@@ -23,7 +25,7 @@ class ClienteInfo(BaseModel):
     class Config:
         from_attributes = True
 
-# NUEVO: Schema para vendedor con nombre
+# Schema para vendedor con nombre
 class VendedorInfo(BaseModel):
     id: int
     nombre: str
@@ -33,12 +35,11 @@ class VendedorInfo(BaseModel):
         from_attributes = True
 
 # Schema modificado con información de cliente y vendedor
-# Schema modificado con información de cliente y vendedor
 class ProyectoResponse(BaseModel):
     id: int
-    requerimiento_id: int | None = None  # 🔥 OPCIONAL
+    requerimiento_id: int | None = None
     cliente_id: int
-    vendedor_id: int | None = None  # 🔥 OPCIONAL
+    vendedor_id: int | None = None
     titulo: str
     descripcion: str | None
     especialidad: str
@@ -52,13 +53,13 @@ class ProyectoResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    # 🆕 CAMPOS NUEVOS (todos opcionales)
+    # Campos nuevos (todos opcionales)
     total_subtareas: int | None = None
     subtareas_completadas: int | None = None
     fase: str | None = None
     historia_usuario: str | None = None
     
-    # NUEVO: Información del cliente y vendedor
+    # Información del cliente y vendedor
     cliente: ClienteInfo | None = None
     vendedor: VendedorInfo | None = None
     
@@ -72,18 +73,20 @@ class ProyectoUpdate(BaseModel):
     fecha_estimada: datetime | None = None
     presupuesto: float | None = None
 
-# Endpoints
+# ========================================
+# ENDPOINTS
+# ========================================
 
 @router.get("/cliente/{cliente_id}", response_model=List[ProyectoResponse])
 def obtener_proyectos_cliente(cliente_id: int, db: Session = Depends(get_db)):
     """Obtiene todos los proyectos de un cliente CON nombre del vendedor (si existe)"""
     
-    # 🔥 LEFT JOIN para que traiga proyectos SIN vendedor también
+    # LEFT JOIN para que traiga proyectos SIN vendedor también
     proyectos = db.query(
         Proyecto,
         VendedorDB.nombre.label('vendedor_nombre'),
         VendedorDB.correo.label('vendedor_email')
-    ).outerjoin(  # 🔥 CAMBIO: join → outerjoin
+    ).outerjoin(
         VendedorDB, Proyecto.vendedor_id == VendedorDB.id
     ).filter(
         Proyecto.cliente_id == cliente_id
@@ -108,10 +111,22 @@ def obtener_proyectos_cliente(cliente_id: int, db: Session = Depends(get_db)):
     
     return resultado
 
+
 @router.get("/vendedor/{vendedor_id}", response_model=List[ProyectoResponse])
 def obtener_proyectos_vendedor(vendedor_id: int, db: Session = Depends(get_db)):
-    """Obtiene todos los proyectos de un vendedor CON nombre del cliente"""
-    # MODIFICADO: Hacer join con la tabla de usuarios (clientes)
+    """
+    Obtiene proyectos donde el vendedor tiene sub-tareas asignadas.
+    NUEVO: Sistema con sub-tareas - un proyecto puede tener múltiples vendedores.
+    """
+    
+    print(f"🔍 Buscando proyectos para vendedor {vendedor_id}...")
+    
+    # Obtener IDs de proyectos donde el vendedor tiene sub-tareas
+    proyectos_ids = db.query(distinct(SubTarea.proyecto_id)).filter(
+        SubTarea.vendedor_id == vendedor_id
+    ).subquery()
+    
+    # Obtener proyectos con info del cliente
     proyectos = db.query(
         Proyecto,
         UsuarioDB.nombre.label('cliente_nombre'),
@@ -119,10 +134,12 @@ def obtener_proyectos_vendedor(vendedor_id: int, db: Session = Depends(get_db)):
     ).join(
         UsuarioDB, Proyecto.cliente_id == UsuarioDB.id
     ).filter(
-        Proyecto.vendedor_id == vendedor_id
+        Proyecto.id.in_(proyectos_ids)
     ).order_by(Proyecto.created_at.desc()).all()
     
-    # Construir la respuesta con la info del cliente
+    print(f"📊 Vendedor {vendedor_id}: {len(proyectos)} proyectos encontrados")
+    
+    # Construir respuesta con info del cliente
     resultado = []
     for proyecto, cliente_nombre, cliente_email in proyectos:
         proyecto_dict = {
@@ -131,11 +148,13 @@ def obtener_proyectos_vendedor(vendedor_id: int, db: Session = Depends(get_db)):
                 'id': proyecto.cliente_id,
                 'nombre': cliente_nombre,
                 'email': cliente_email
-            }
+            },
+            'vendedor': None  # En el nuevo sistema no hay vendedor único por proyecto
         }
         resultado.append(proyecto_dict)
     
     return resultado
+
 
 @router.get("/{proyecto_id}", response_model=ProyectoResponse)
 def obtener_proyecto(proyecto_id: int, db: Session = Depends(get_db)):
@@ -144,6 +163,7 @@ def obtener_proyecto(proyecto_id: int, db: Session = Depends(get_db)):
     if not proyecto:
         raise HTTPException(status_code=404, detail="Proyecto no encontrado")
     return proyecto
+
 
 @router.put("/{proyecto_id}", response_model=ProyectoResponse)
 def actualizar_proyecto(
@@ -187,6 +207,7 @@ def actualizar_proyecto(
     db.commit()
     db.refresh(proyecto)
     return proyecto
+
 
 @router.delete("/{proyecto_id}")
 def eliminar_proyecto(proyecto_id: int, db: Session = Depends(get_db)):

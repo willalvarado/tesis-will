@@ -1,0 +1,254 @@
+<div class="chat-subtarea-container">
+  <!-- Header -->
+  <div class="page-header">
+    <button class="btn-volver" (click)="volver()">
+      ← Volver a Mis Proyectos
+    </button>
+    <div class="header-info" *ngIf="subtarea">
+      <h2>{{ subtarea.subtarea?.codigo }} - {{ subtarea.subtarea?.titulo }}</h2>
+      <span class="estado-badge" [style.background-color]="getEstadoColor(subtarea.subtarea?.estado)">
+        {{ getEstadoIcon(subtarea.subtarea?.estado) }} {{ subtarea.subtarea?.estado }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando sub-tarea...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !cargando" class="error-state">
+    <p>{{ error }}</p>
+    <button class="btn-retry" (click)="cargarDatos()">Reintentar</button>
+  </div>
+
+  <!-- Contenido principal -->
+  <div *ngIf="!cargando && !error && subtarea" class="content-layout">
+    
+    <!-- Sidebar izquierdo - Info de la sub-tarea -->
+    <aside class="info-sidebar">
+      <div class="info-card">
+        <h3>📋 Información</h3>
+        
+        <div class="info-section">
+          <div class="info-item">
+            <span class="label">Proyecto:</span>
+            <span class="value">{{ subtarea.proyecto?.titulo }}</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="label">Cliente:</span>
+            <span class="value">{{ subtarea.cliente?.nombre }}</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="label">Código:</span>
+            <span class="value code">{{ subtarea.subtarea?.codigo }}</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="label">Prioridad:</span>
+            <span class="value priority" [style.color]="getPrioridadColor(subtarea.subtarea?.prioridad)">
+              {{ subtarea.subtarea?.prioridad }}
+            </span>
+          </div>
+          
+          <div class="info-item">
+            <span class="label">Estimación:</span>
+            <span class="value">{{ subtarea.subtarea?.estimacion_horas }}h</span>
+          </div>
+          
+          <div class="info-item">
+            <span class="label">Especialidad:</span>
+            <span class="value">{{ subtarea.subtarea?.especialidad }}</span>
+          </div>
+        </div>
+
+        <!-- 🔥 PRESUPUESTO EDITABLE -->
+        <div class="info-section presupuesto-section">
+          <div class="presupuesto-header">
+            <h4>💰 Presupuesto</h4>
+            <button 
+              class="btn-editar-presupuesto" 
+              (click)="toggleEditarPresupuesto()"
+              *ngIf="!editandoPresupuesto">
+              ✏️ Editar
+            </button>
+          </div>
+          
+          <div class="budget-info" *ngIf="!editandoPresupuesto">
+            <div class="budget-item">
+              <span class="budget-label">Total:</span>
+              <span class="budget-value">\${{ subtarea.subtarea?.presupuesto | number:'1.2-2' }}</span>
+            </div>
+            <div class="budget-item">
+              <span class="budget-label">Pagado:</span>
+              <span class="budget-value paid">\${{ subtarea.subtarea?.pagado | number:'1.2-2' }}</span>
+            </div>
+            <div class="budget-item">
+              <span class="budget-label">Pendiente:</span>
+              <span class="budget-value pending">\${{ (subtarea.subtarea?.presupuesto - subtarea.subtarea?.pagado) | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Form de edición de presupuesto -->
+          <div class="presupuesto-edit" *ngIf="editandoPresupuesto">
+            <label>Nuevo Presupuesto:</label>
+            <input 
+              type="number" 
+              [(ngModel)]="presupuestoEdit" 
+              class="input-presupuesto"
+              min="0"
+              step="0.01"
+            >
+            <div class="presupuesto-actions">
+              <button class="btn-guardar" (click)="guardarPresupuesto()">
+                ✅ Guardar
+              </button>
+              <button class="btn-cancelar" (click)="toggleEditarPresupuesto()">
+                ❌ Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fechas -->
+        <div class="info-section">
+          <h4>📅 Fechas</h4>
+          <div class="fechas-list">
+            <div class="fecha-item" *ngIf="subtarea.subtarea?.fecha_asignacion">
+              <span class="fecha-icon">📌</span>
+              <div class="fecha-text">
+                <span class="fecha-label">Asignada:</span>
+                <span class="fecha-value">{{ formatearFecha(subtarea.subtarea?.fecha_asignacion) }}</span>
+              </div>
+            </div>
+            <div class="fecha-item" *ngIf="subtarea.subtarea?.fecha_inicio">
+              <span class="fecha-icon">🚀</span>
+              <div class="fecha-text">
+                <span class="fecha-label">Iniciada:</span>
+                <span class="fecha-value">{{ formatearFecha(subtarea.subtarea?.fecha_inicio) }}</span>
+              </div>
+            </div>
+            <div class="fecha-item" *ngIf="subtarea.subtarea?.fecha_completado">
+              <span class="fecha-icon">✅</span>
+              <div class="fecha-text">
+                <span class="fecha-label">Completada:</span>
+                <span class="fecha-value">{{ formatearFecha(subtarea.subtarea?.fecha_completado) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <h4>📝 Descripción</h4>
+          <p class="descripcion-text">{{ subtarea.subtarea?.descripcion }}</p>
+        </div>
+
+        <!-- 🔥 ARCHIVOS -->
+        <div class="info-section archivos-section">
+          <div class="archivos-header">
+            <h4>📎 Archivos ({{ archivos.length }})</h4>
+            <label class="btn-subir-archivo">
+              <input 
+                type="file" 
+                (change)="onFileSelected($event)" 
+                style="display: none"
+                [disabled]="subiendoArchivo"
+              >
+              {{ subiendoArchivo ? '⏳' : '📤' }} Subir
+            </label>
+          </div>
+
+          <div class="archivos-list">
+            <div class="archivo-item" *ngFor="let archivo of archivos">
+              <div class="archivo-info">
+                <div class="archivo-nombre">
+                  📄 {{ archivo.nombre_original }}
+                </div>
+                <div class="archivo-meta">
+                  <span class="archivo-tamano">{{ formatearTamano(archivo.tamano) }}</span>
+                  <span class="archivo-por">
+                    {{ archivo.subido_por_tipo === 'vendedor' ? '👤 Tú' : '👥 Cliente' }}
+                  </span>
+                </div>
+              </div>
+              <div class="archivo-acciones">
+                <button class="btn-descargar" (click)="descargarArchivo(archivo)">
+                  📥
+                </button>
+                <button 
+                  class="btn-eliminar" 
+                  (click)="eliminarArchivo(archivo)">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <div class="archivos-empty" *ngIf="archivos.length === 0">
+              <p>No hay archivos aún</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Chat principal -->
+    <main class="chat-main">
+      <div class="chat-container">
+        <div class="chat-header">
+          <div class="chat-title">
+            <h3>💬 Chat con {{ subtarea.cliente?.nombre || 'Cliente' }}</h3>
+            <p>Conversa sobre esta sub-tarea</p>
+          </div>
+        </div>
+
+        <div class="chat-messages">
+          <div class="message" 
+               *ngFor="let mensaje of mensajes" 
+               [class.sent]="mensaje.remitente === 'vendedor'" 
+               [class.received]="mensaje.remitente === 'cliente'">
+            <div class="message-content">
+              <p>{{ mensaje.contenido }}</p>
+              <div class="message-info">
+                <span class="message-time">{{ formatearHora(mensaje.fecha) }}</span>
+                <span class="message-status" *ngIf="mensaje.remitente === 'vendedor'">
+                  {{ mensaje.leido ? '✓✓' : '✓' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty state -->
+          <div class="empty-chat" *ngIf="mensajes.length === 0">
+            <div class="empty-icon">💬</div>
+            <p>No hay mensajes aún</p>
+            <span>Inicia la conversación con tu cliente</span>
+          </div>
+        </div>
+
+        <div class="chat-input">
+          <div class="input-wrapper">
+            <input 
+              type="text" 
+              [(ngModel)]="nuevoMensaje"
+              (keypress)="$event.key === 'Enter' && enviarMensaje()" 
+              placeholder="Escribe tu mensaje..." 
+              [disabled]="enviandoMensaje" 
+              class="message-input"
+              autocomplete="off"
+            >
+            <button 
+              class="btn-send" 
+              (click)="enviarMensaje()" 
+              [disabled]="enviandoMensaje || !nuevoMensaje.trim()">
+              {{ enviandoMensaje ? '⏳' : '📤' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

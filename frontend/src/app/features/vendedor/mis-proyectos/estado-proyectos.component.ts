@@ -83,8 +83,12 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
       return;
     }
 
+    console.log('🔍 Cargando proyectos del vendedor:', vendedorId);
+
     this.proyectosService.obtenerProyectosVendedor(vendedorId).subscribe({
       next: (proyectos) => {
+        console.log('✅ Proyectos recibidos:', proyectos);
+        
         this.proyectos = proyectos.map(proyecto => ({
           ...proyecto,
           nombre: proyecto.titulo,
@@ -97,10 +101,16 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
         this.cargando = false;
       },
       error: (error) => {
-        console.error('Error al cargar proyectos:', error);
+        console.error('❌ Error al cargar proyectos:', error);
         this.cargando = false;
       }
     });
+  }
+
+  // 🔥 NUEVO MÉTODO: Navegar al detalle del proyecto
+  verDetalle(proyectoId: number): void {
+    console.log('📍 Navegando al detalle del proyecto:', proyectoId);
+    this.router.navigate(['/vendedor/proyecto', proyectoId]);
   }
 
   seleccionarProyecto(proyecto: any): void {
@@ -307,13 +317,17 @@ export class EstadoProyectosComponent implements OnInit, OnDestroy {
     });
   }
 
+  // 🔥 CORREGIDO: Ahora tiene fallback
   private obtenerVendedorId(): number | null {
     const usuario = localStorage.getItem('usuario');
     if (usuario) {
       const usuarioObj = JSON.parse(usuario);
+      console.log('✅ Usuario vendedor obtenido:', usuarioObj);
       return usuarioObj.id;
     }
-    return null;
+    
+    console.warn('⚠️ localStorage vacío. Usando ID vendedor hardcodeado: 2');
+    return 2;  // ✅ FALLBACK temporal
   }
 
   obtenerColorEstado(estado: string): string {

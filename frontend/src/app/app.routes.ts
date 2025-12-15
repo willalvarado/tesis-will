@@ -87,10 +87,14 @@ export const routes: Routes = [
     path: 'vendedor/mi-perfil', 
     loadComponent: () => import('./features/vendedor/mi-perfil/mi-perfil.component').then(m => m.MiPerfilComponent) 
   },
-  { 
-    path: 'vendedor/chat/:id', 
-    loadComponent: () => import('./features/vendedor/chat-proyecto/chat-proyecto.component').then(m => m.ChatProyectoVendedorComponent) 
-  },
+  {
+  path: 'vendedor/proyecto/:id',
+  loadComponent: () => import('./features/vendedor/detalle-proyecto/detalle-proyecto-vendedor.component').then(m => m.DetalleProyectoVendedorComponent)
+},
+  {
+  path: 'vendedor/subtarea/:id',
+  loadComponent: () => import('./features/vendedor/chat-subtarea-vendedor/chat-subtarea-vendedor.component').then(m => m.ChatSubtareaVendedorComponent)
+},
   { 
     path: 'vendedor/historial', 
     loadComponent: () => import('./features/vendedor/historial/historial.component').then(m => m.HistorialVendedorComponent) 
