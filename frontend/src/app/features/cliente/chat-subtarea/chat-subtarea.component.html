@@ -123,6 +123,48 @@
           <h4>📝 Descripción</h4>
           <p class="descripcion-text">{{ subtarea.subtarea?.descripcion }}</p>
         </div>
+
+        <!-- 🔥 NUEVO: ARCHIVOS (CLIENTE) -->
+        <div class="info-section archivos-section">
+          <div class="archivos-header">
+            <h4>📎 Archivos ({{ archivos.length }})</h4>
+            <label class="btn-subir-archivo">
+              <input 
+                type="file" 
+                (change)="onFileSelected($event)" 
+                style="display: none"
+                [disabled]="subiendoArchivo"
+              >
+              {{ subiendoArchivo ? '⏳' : '📤' }} Subir
+            </label>
+          </div>
+
+          <div class="archivos-list">
+            <div class="archivo-item" *ngFor="let archivo of archivos">
+              <div class="archivo-info">
+                <div class="archivo-nombre">
+                  📄 {{ archivo.nombre_original }}
+                </div>
+                <div class="archivo-meta">
+                  <span class="archivo-tamano">{{ formatearTamano(archivo.tamano) }}</span>
+                  <span class="archivo-por">
+                    {{ archivo.subido_por_tipo === 'cliente' ? '👤 Tú' : '👥 Vendedor' }}
+                  </span>
+                </div>
+              </div>
+              <div class="archivo-acciones">
+                <button class="btn-descargar" (click)="descargarArchivo(archivo)">
+                  📥
+                </button>
+                <!-- ❌ CLIENTE NO PUEDE ELIMINAR -->
+              </div>
+            </div>
+
+            <div class="archivos-empty" *ngIf="archivos.length === 0">
+              <p>No hay archivos aún</p>
+            </div>
+          </div>
+        </div>
       </div>
     </aside>
 

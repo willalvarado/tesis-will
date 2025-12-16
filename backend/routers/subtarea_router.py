@@ -533,44 +533,7 @@ def obtener_estadisticas_vendedor(
         print(f"❌ Error obteniendo estadísticas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.put("/{subtarea_id}/actualizar-presupuesto")
-def actualizar_presupuesto_subtarea(
-    subtarea_id: int,
-    presupuesto: float,
-    db: Session = Depends(get_db)
-):
-    """Actualiza el presupuesto de una sub-tarea (solo vendedor)"""
-    from pydantic import BaseModel
-    
-    class PresupuestoUpdate(BaseModel):
-        presupuesto: float
-    
-    try:
-        subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
-        if not subtarea:
-            raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
-        
-        subtarea.presupuesto = presupuesto
-        subtarea.updated_at = datetime.utcnow()
-        
-        db.commit()
-        db.refresh(subtarea)
-        
-        print(f"💰 Presupuesto de sub-tarea {subtarea_id} actualizado a ${presupuesto}")
-        
-        return {
-            "exito": True,
-            "mensaje": "Presupuesto actualizado",
-            "subtarea_id": subtarea_id,
-            "nuevo_presupuesto": float(presupuesto)
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        db.rollback()
-        print(f"❌ Error actualizando presupuesto: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/{subtarea_id}")
 def obtener_detalle_subtarea(
     subtarea_id: int,
@@ -649,6 +612,58 @@ def obtener_detalle_subtarea(
         raise
     except Exception as e:
         print(f"❌ Error obteniendo detalle de sub-tarea: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # ========================================
+# 🔥 ACTUALIZAR PRESUPUESTO
+# ========================================
+
+class PresupuestoUpdate(BaseModel):
+    presupuesto: float
+
+@router.put("/{subtarea_id}/actualizar-presupuesto")
+def actualizar_presupuesto_subtarea(
+    subtarea_id: int,
+    data: PresupuestoUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza el presupuesto de una sub-tarea.
+    Solo el vendedor asignado puede hacerlo.
+    """
+    try:
+        # Buscar sub-tarea
+        subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
+        if not subtarea:
+            raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
+        
+        # Validar presupuesto
+        if data.presupuesto < 0:
+            raise HTTPException(status_code=400, detail="El presupuesto no puede ser negativo")
+        
+        # Actualizar presupuesto
+        subtarea.presupuesto = data.presupuesto
+        subtarea.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(subtarea)
+        
+        print(f"✅ Presupuesto de sub-tarea {subtarea.codigo} actualizado a ${data.presupuesto}")
+        
+        return {
+            "exito": True,
+            "mensaje": "Presupuesto actualizado exitosamente",
+            "subtarea_id": subtarea.id,
+            "nuevo_presupuesto": float(subtarea.presupuesto)
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Error actualizando presupuesto: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
     
     

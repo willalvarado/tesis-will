@@ -2,10 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SubtareaService, SubTarea } from '../../../core/services/subtarea.service';
 import { ChatService, Mensaje as MensajeChat } from '../../../core/services/chat.service';
-
 
 interface MensajeUI {
   id: number;
@@ -14,6 +14,17 @@ interface MensajeUI {
   contenido: string;
   fecha: Date;
   leido: boolean;
+}
+
+interface Archivo {
+  id: number;
+  subtarea_id: number;
+  subido_por_id: number;
+  subido_por_tipo: 'cliente' | 'vendedor';
+  nombre_original: string;
+  tamano: number;  // ✅ SIN Ñ en TypeScript
+  tipo_mime: string;
+  created_at: string;
 }
 
 @Component({
@@ -27,16 +38,20 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
   subtareaId: number = 0;
   subtarea: any = null;
   mensajes: MensajeUI[] = [];
+  archivos: Archivo[] = [];
   nuevoMensaje: string = '';
   cargando = true;
   enviandoMensaje = false;
+  subiendoArchivo = false;
   error = '';
 
   private mensajesSubscription?: Subscription;
+  private apiUrl = 'http://localhost:8000';
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
+    private http: HttpClient,
     private subtareaService: SubtareaService,
     private chatService: ChatService
   ) {}
@@ -65,8 +80,9 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
         this.subtarea = response;
         this.cargando = false;
         
-        // Conectar al chat de la sub-tarea
+        // Conectar al chat y cargar archivos
         this.conectarChat();
+        this.cargarArchivos();
       },
       error: (error) => {
         console.error('❌ Error cargando sub-tarea:', error);
@@ -130,6 +146,25 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
     });
   }
 
+  cargarArchivos(): void {
+    console.log('📎 Cargando archivos...');
+    
+    this.http.get<any[]>(`${this.apiUrl}/chat/subtarea/${this.subtareaId}/archivos`)
+      .subscribe({
+        next: (archivos) => {
+          console.log('✅ Archivos cargados:', archivos);
+          // Mapear tamaño → tamano
+          this.archivos = archivos.map(a => ({
+            ...a,
+            tamano: a.tamaño || a.tamano  // ✅ Acepta ambos formatos
+          }));
+        },
+        error: (error) => {
+          console.error('❌ Error cargando archivos:', error);
+        }
+      });
+  }
+
   enviarMensaje(): void {
     console.log('🚀 Método enviarMensaje() ejecutado');
     console.log('📝 nuevoMensaje:', this.nuevoMensaje);
@@ -177,6 +212,46 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
         alert('Error al enviar el mensaje');
       }
     });
+  }
+
+  // 🔥 NUEVO: Subir archivo
+  onFileSelected(event: any): void {
+    const file: File = event.target.files[0];
+    const clienteId = this.obtenerClienteId();
+    
+    if (!file || !clienteId) return;
+    
+    this.subiendoArchivo = true;
+    
+    const formData = new FormData();
+    formData.append('archivo', file);
+    
+    const url = `${this.apiUrl}/chat/subtarea/${this.subtareaId}/archivo?subido_por_id=${clienteId}&subido_por_tipo=cliente`;
+    
+    this.http.post<any>(url, formData).subscribe({
+      next: (archivo) => {
+        console.log('✅ Archivo subido:', archivo);
+        // Mapear tamaño → tamano
+        this.archivos.unshift({
+          ...archivo,
+          tamano: archivo.tamaño || archivo.tamano
+        });
+        this.subiendoArchivo = false;
+        alert('📎 Archivo subido exitosamente');
+      },
+      error: (error) => {
+        console.error('❌ Error subiendo archivo:', error);
+        this.subiendoArchivo = false;
+        alert('Error al subir archivo');
+      }
+    });
+  }
+
+  // 🔥 NUEVO: Descargar archivo
+  descargarArchivo(archivo: Archivo): void {
+    alert(`📥 Descargando: ${archivo.nombre_original}`);
+    console.log('Descargar archivo:', archivo);
+    // TODO: Implementar descarga real
   }
 
   private scrollToBottom(): void {
@@ -250,5 +325,11 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
       hour: '2-digit',
       minute: '2-digit'
     });
+  }
+
+  formatearTamano(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
 }

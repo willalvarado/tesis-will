@@ -30,15 +30,13 @@ class ArchivoSubtarea(Base):
     id = Column(Integer, primary_key=True, index=True)
     subtarea_id = Column(Integer, ForeignKey('sub_tareas.id', ondelete='CASCADE'), nullable=False)
     
-    # Quién subió el archivo
     subido_por_id = Column(Integer, nullable=False)
-    subido_por_tipo = Column(String(20), nullable=False)  # 'cliente' o 'vendedor'
+    subido_por_tipo = Column(String(20), nullable=False)
     
-    # Info del archivo
     nombre_original = Column(String(255), nullable=False)
     nombre_guardado = Column(String(255), nullable=False, unique=True)
     ruta = Column(String(500), nullable=False)
-    tamaño = Column(Integer, nullable=False)  # en bytes
+    tamaño = Column(Integer, nullable=False)  # 🔥 CON Ñ (como está en la BD)
     tipo_mime = Column(String(100), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())

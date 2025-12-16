@@ -108,7 +108,7 @@ class ArchivoResponse(BaseModel):
     subido_por_id: int
     subido_por_tipo: str
     nombre_original: str
-    tamano: int
+    tamaño: int  # ✅ CON Ñ (como en la BD)
     tipo_mime: Optional[str]
     created_at: datetime
     
@@ -247,15 +247,15 @@ async def subir_archivo(
         
         # Guardar en BD
         nuevo_archivo = ArchivoSubtarea(
-            subtarea_id=subtarea_id,
-            subido_por_id=subido_por_id,
-            subido_por_tipo=subido_por_tipo,
-            nombre_original=archivo.filename,
-            nombre_guardado=nombre_guardado,
-            ruta=ruta_completa,
-            tamano=tamano,
-            tipo_mime=archivo.content_type
-        )
+    subtarea_id=subtarea_id,
+    subido_por_id=subido_por_id,
+    subido_por_tipo=subido_por_tipo,
+    nombre_original=archivo.filename,
+    nombre_guardado=nombre_guardado,
+    ruta=ruta_completa,
+    tamaño=tamano,  # 🔥 CON Ñ
+    tipo_mime=archivo.content_type
+)
         
         db.add(nuevo_archivo)
         db.commit()
