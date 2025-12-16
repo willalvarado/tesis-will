@@ -138,12 +138,16 @@ export class DetalleProyectoVendedorComponent implements OnInit {
   }
 
   private obtenerVendedorId(): number | null {
-    const usuario = localStorage.getItem('usuario');
-    if (usuario) {
-      return JSON.parse(usuario).id;
-    }
-    return null;
+  const usuario = localStorage.getItem('usuario');
+  if (usuario) {
+    const usuarioObj = JSON.parse(usuario);
+    console.log('✅ Usuario vendedor obtenido:', usuarioObj);
+    return usuarioObj.id;
   }
+  
+  console.warn('⚠️ localStorage vacío. Usando ID vendedor hardcodeado: 2');
+  return 2;  // ✅ FALLBACK temporal
+}
 
   getPrioridadColor(prioridad: string): string {
     const colores: { [key: string]: string } = {

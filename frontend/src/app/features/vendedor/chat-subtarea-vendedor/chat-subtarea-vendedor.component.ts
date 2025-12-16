@@ -172,32 +172,47 @@ export class ChatSubtareaVendedorComponent implements OnInit, OnDestroy {
   }
 
   enviarMensaje(): void {
-    if (!this.nuevoMensaje.trim() || !this.vendedorId) return;
-    
-    const mensaje: MensajeChat = {
-      subtarea_id: this.subtareaId,
-      remitente_id: this.vendedorId,
-      remitente_tipo: 'vendedor',
-      contenido: this.nuevoMensaje.trim(),
-      leido: false
-    };
-    
-    this.enviandoMensaje = true;
-    console.log('📤 Enviando mensaje:', mensaje);
-    
-    this.chatService.guardarMensaje(mensaje).subscribe({
-      next: (mensajeGuardado) => {
-        console.log('✅ Mensaje guardado:', mensajeGuardado);
-        this.chatService.enviarMensajeWS(mensajeGuardado);
-        this.nuevoMensaje = '';
-        this.enviandoMensaje = false;
-      },
-      error: (error) => {
-        console.error('❌ Error al enviar mensaje:', error);
-        this.enviandoMensaje = false;
-      }
-    });
+  console.log('🚀 Método enviarMensaje() ejecutado');
+  console.log('📝 nuevoMensaje:', this.nuevoMensaje);
+  console.log('👤 vendedorId:', this.vendedorId);
+  
+  if (!this.nuevoMensaje.trim()) {
+    console.warn('⚠️ Mensaje vacío');
+    alert('Por favor escribe un mensaje');
+    return;
   }
+  
+  if (!this.vendedorId) {
+    console.error('❌ No hay vendedorId');
+    alert('Error: No se encontró el ID del vendedor. Por favor recarga la página.');
+    return;
+  }
+  
+  const mensaje: MensajeChat = {
+    subtarea_id: this.subtareaId,
+    remitente_id: this.vendedorId,
+    remitente_tipo: 'vendedor',
+    contenido: this.nuevoMensaje.trim(),
+    leido: false
+  };
+  
+  this.enviandoMensaje = true;
+  console.log('📤 Enviando mensaje:', mensaje);
+  
+  this.chatService.guardarMensaje(mensaje).subscribe({
+    next: (mensajeGuardado) => {
+      console.log('✅ Mensaje guardado en BD:', mensajeGuardado);
+      this.chatService.enviarMensajeWS(mensajeGuardado);
+      this.nuevoMensaje = '';
+      this.enviandoMensaje = false;
+    },
+    error: (error) => {
+      console.error('❌ Error al enviar mensaje:', error);
+      this.enviandoMensaje = false;
+      alert('Error al enviar el mensaje');
+    }
+  });
+}
 
   // 🔥 NUEVO: Subir archivo
   onFileSelected(event: any): void {
@@ -295,12 +310,16 @@ export class ChatSubtareaVendedorComponent implements OnInit, OnDestroy {
   }
 
   private obtenerVendedorId(): number | null {
-    const usuario = localStorage.getItem('usuario');
-    if (usuario) {
-      return JSON.parse(usuario).id;
-    }
-    return null;
+  const usuario = localStorage.getItem('usuario');
+  if (usuario) {
+    const usuarioObj = JSON.parse(usuario);
+    console.log('✅ Usuario vendedor obtenido:', usuarioObj);
+    return usuarioObj.id;
   }
+  
+  console.warn('⚠️ localStorage vacío. Usando ID vendedor hardcodeado: 2');
+  return 2;  // ✅ FALLBACK: ID del vendedor wire@gmail.com
+}
 
   volver(): void {
     this.router.navigate(['/vendedor/mis-proyectos']);

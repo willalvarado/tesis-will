@@ -32,33 +32,40 @@ export class ChatService {
    * 🔥 NUEVO: Conectar al WebSocket de una sub-tarea
    */
   conectarChatSubtarea(subtareaId: number): void {
-    if (this.ws) {
-      this.ws.close();
-    }
-
-    this.ws = new WebSocket(`ws://localhost:8000/chat/ws/subtarea/${subtareaId}`);
-
-    this.ws.onopen = () => {
-      console.log('✅ Conectado al chat de la sub-tarea', subtareaId);
-      this.conexionSubject.next(true);
-    };
-
-    this.ws.onmessage = (event) => {
-      const mensaje: Mensaje = JSON.parse(event.data);
-      console.log('📩 Mensaje recibido:', mensaje);
-      this.mensajesSubject.next(mensaje);
-    };
-
-    this.ws.onerror = (error) => {
-      console.error('❌ Error en WebSocket:', error);
-      this.conexionSubject.next(false);
-    };
-
-    this.ws.onclose = () => {
-      console.log('❌ Desconectado del chat');
-      this.conexionSubject.next(false);
-    };
+  console.log('🔌 Intentando conectar a sub-tarea:', subtareaId);
+  
+  if (this.ws) {
+    console.log('🔄 Cerrando WebSocket anterior...');
+    this.ws.close();
   }
+
+  const wsUrl = `ws://localhost:8000/chat/ws/subtarea/${subtareaId}`;
+  console.log('🌐 URL del WebSocket:', wsUrl);
+
+  this.ws = new WebSocket(wsUrl);
+
+  this.ws.onopen = () => {
+    console.log('✅ WebSocket CONECTADO a sub-tarea:', subtareaId);
+    this.conexionSubject.next(true);
+  };
+
+  this.ws.onmessage = (event) => {
+    const mensaje: Mensaje = JSON.parse(event.data);
+    console.log('📩 Mensaje recibido por WebSocket:', mensaje);
+    this.mensajesSubject.next(mensaje);
+  };
+
+  this.ws.onerror = (error) => {
+    console.error('❌ Error en WebSocket:', error);
+    console.error('❌ ¿El backend está corriendo en http://localhost:8000?');
+    this.conexionSubject.next(false);
+  };
+
+  this.ws.onclose = (event) => {
+    console.log('❌ WebSocket cerrado. Código:', event.code, 'Razón:', event.reason);
+    this.conexionSubject.next(false);
+  };
+}
 
   /**
    * Conectar al WebSocket de un proyecto (lógica original)

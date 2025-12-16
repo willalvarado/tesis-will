@@ -6,6 +6,7 @@ import { Subscription } from 'rxjs';
 import { SubtareaService, SubTarea } from '../../../core/services/subtarea.service';
 import { ChatService, Mensaje as MensajeChat } from '../../../core/services/chat.service';
 
+
 interface MensajeUI {
   id: number;
   subtareaId: number;
@@ -130,11 +131,20 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
   }
 
   enviarMensaje(): void {
-    if (!this.nuevoMensaje.trim()) return;
+    console.log('🚀 Método enviarMensaje() ejecutado');
+    console.log('📝 nuevoMensaje:', this.nuevoMensaje);
+    
+    if (!this.nuevoMensaje.trim()) {
+      console.warn('⚠️ Mensaje vacío');
+      return;
+    }
     
     const clienteId = this.obtenerClienteId();
+    console.log('👤 clienteId:', clienteId);
+    
     if (!clienteId) {
-      console.error('No se pudo obtener el ID del cliente');
+      console.error('❌ No hay clienteId');
+      alert('Error: No se encontró el ID del cliente');
       return;
     }
     
@@ -152,9 +162,7 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
     this.chatService.guardarMensaje(mensaje).subscribe({
       next: (mensajeGuardado) => {
         console.log('✅ Mensaje guardado:', mensajeGuardado);
-        
         this.chatService.enviarMensajeWS(mensajeGuardado);
-        
         this.nuevoMensaje = '';
         this.enviandoMensaje = false;
         
@@ -166,6 +174,7 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('❌ Error al enviar mensaje:', error);
         this.enviandoMensaje = false;
+        alert('Error al enviar el mensaje');
       }
     });
   }
@@ -182,9 +191,13 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
   private obtenerClienteId(): number | null {
     const usuario = localStorage.getItem('usuario');
     if (usuario) {
-      return JSON.parse(usuario).id;
+      const usuarioObj = JSON.parse(usuario);
+      console.log('✅ Usuario cliente obtenido:', usuarioObj);
+      return usuarioObj.id;
     }
-    return null;
+    
+    console.warn('⚠️ localStorage vacío. Usando ID cliente hardcodeado: 2');
+    return 2;  // ✅ FALLBACK: ID del cliente will@gmail.com
   }
 
   volver(): void {

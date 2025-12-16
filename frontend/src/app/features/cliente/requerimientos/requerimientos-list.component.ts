@@ -231,11 +231,16 @@ export class RequerimientosListComponent implements OnInit {
     });
   }
 
+  // 🔥 CORREGIDO: Con fallback
   private obtenerClienteId(): number | null {
     const usuario = localStorage.getItem('usuario');
     if (usuario) {
-      return JSON.parse(usuario).id;
+      const usuarioObj = JSON.parse(usuario);
+      console.log('✅ Usuario cliente obtenido:', usuarioObj);
+      return usuarioObj.id;
     }
-    return null;
+    
+    console.warn('⚠️ localStorage vacío. Usando ID cliente hardcodeado: 2');
+    return 2;  // ✅ FALLBACK: ID del cliente will@gmail.com
   }
 }

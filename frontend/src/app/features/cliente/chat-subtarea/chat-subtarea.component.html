@@ -163,19 +163,15 @@
         <div class="chat-input">
           <div class="input-wrapper">
             <input 
-  type="text" 
-  [value]="nuevoMensaje"
-  (input)="nuevoMensaje = $any($event.target).value"
-  (keypress)="$event.key === 'Enter' && enviarMensaje()" 
-  placeholder="Escribe tu mensaje..." 
-  [disabled]="enviandoMensaje" 
-  class="message-input"
-  autocomplete="off"
->
+              type="text" 
+              [(ngModel)]="nuevoMensaje"
+              (keyup.enter)="enviarMensaje()" 
+              placeholder="Escribe tu mensaje..." 
+              class="message-input"
+            >
             <button 
               class="btn-send" 
-              (click)="enviarMensaje()" 
-              [disabled]="enviandoMensaje || !nuevoMensaje.trim()">
+              (click)="enviarMensaje()">
               {{ enviandoMensaje ? '⏳' : '📤' }}
             </button>
           </div>
