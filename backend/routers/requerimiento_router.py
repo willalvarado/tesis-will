@@ -75,7 +75,7 @@ def obtener_proyectos_en_analisis_publicado(cliente_id: int, db: Session = Depen
     
     return resultado
 
-# ... resto de tu código ...
+
 
 # 🔥 FUNCIÓN DE MAPEO: Nombre amigable → Código ENUM
 def nombre_amigable_a_enum(nombre: str) -> str:

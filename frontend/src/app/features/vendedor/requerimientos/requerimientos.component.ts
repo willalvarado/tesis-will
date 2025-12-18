@@ -24,8 +24,8 @@ interface SubtareaDisponible {
   prioridad: string;
   estimacion_horas: number;
   proyecto_id: number;
-  proyecto_titulo?: string;  // 🔥 Ahora opcional
-  cliente_nombre?: string;   // 🔥 Ahora opcional
+  proyecto_titulo?: string;
+  cliente_nombre?: string;
 }
 
 @Component({
@@ -51,7 +51,7 @@ interface SubtareaDisponible {
           <h2>🎯 Sub-tareas Disponibles</h2>
           <p class="subtitle">
             Proyectos que coinciden con tu especialidad: 
-            <span class="especialidad-badge">{{ especialidadVendedor || 'Todas' }}</span>
+            <span class="especialidad-badge">{{ especialidadesVendedor[0] || 'Todas' }}</span>
           </p>
         </div>
         <div class="stats">
@@ -125,9 +125,19 @@ interface SubtareaDisponible {
                     </div>
                   </div>
 
-                  <!-- Botón de aceptar -->
-                  <button class="btn-aceptar" (click)="aceptarSubtarea(subtarea.id)">
+                  <!-- 🔥 BOTÓN CONDICIONAL -->
+                  <button 
+                    *ngIf="puedeAceptarSubtarea(subtarea)"
+                    class="btn-aceptar" 
+                    (click)="aceptarSubtarea(subtarea.id)">
                     ✅ Aceptar Sub-tarea
+                  </button>
+
+                  <button 
+                    *ngIf="!puedeAceptarSubtarea(subtarea)"
+                    class="btn-no-disponible" 
+                    disabled>
+                    🚫 No es tu especialidad
                   </button>
                 </div>
 
@@ -453,6 +463,20 @@ interface SubtareaDisponible {
       box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
     }
 
+    /* 🔥 NUEVO ESTILO PARA BOTÓN DESHABILITADO */
+    .btn-no-disponible {
+      width: 100%;
+      padding: 12px;
+      background: #6c757d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
     .empty-state {
       text-align: center;
       padding: 80px 20px;
@@ -525,7 +549,7 @@ export class RequerimientoComponent implements OnInit {
   proyectosAgrupados: ProyectoConSubtareas[] = [];
   subtareasDisponibles: SubtareaDisponible[] = [];
   cargando: boolean = true;
-  especialidadVendedor: string = '';
+  especialidadesVendedor: string[] = [];
   totalSubtareasDisponibles: number = 0;
 
   constructor(
@@ -543,27 +567,78 @@ export class RequerimientoComponent implements OnInit {
   if (usuario) {
     const vendedor = JSON.parse(usuario);
     
-    // 🔥 Tomar TODAS las especialidades
-    let especialidades = [];
+    console.log('🔍 Usuario completo:', vendedor);
+    console.log('🔍 Especialidades raw:', vendedor.especialidades);
+    console.log('🔍 Tipo:', typeof vendedor.especialidades);
+    
+    // 🔥 Guardar TODAS las especialidades
     if (Array.isArray(vendedor.especialidades)) {
-      especialidades = vendedor.especialidades;
+      this.especialidadesVendedor = vendedor.especialidades;
     } else if (typeof vendedor.especialidades === 'string') {
-      // Si viene como string con comas, convertir a array
-      especialidades = vendedor.especialidades.split(',').map((e: string) => e.trim());
+      try {
+        // Si viene como JSON string
+        const parsed = JSON.parse(vendedor.especialidades);
+        this.especialidadesVendedor = Array.isArray(parsed) ? parsed : [vendedor.especialidades];
+      } catch {
+        // Si viene como string con comas
+        this.especialidadesVendedor = vendedor.especialidades.split(',').map((e: string) => e.trim());
+      }
     }
     
-    // Tomar la primera especialidad para filtrar
-    this.especialidadVendedor = especialidades[0] || '';
-    
-    console.log('🔍 Especialidades del vendedor:', especialidades);
-    console.log('🔍 Filtrando por:', this.especialidadVendedor);
+    console.log('✅ Especialidades cargadas:', this.especialidadesVendedor);
+  } else {
+    console.warn('⚠️ No hay usuario en localStorage');
   }
 }
+
+  // 🔥 NUEVO MÉTODO: Verifica si puede aceptar la sub-tarea
+  puedeAceptarSubtarea(subtarea: SubtareaDisponible): boolean {
+  // Convertir especialidades del vendedor a códigos
+  const especialidadesVendedorCodigos = this.especialidadesVendedor.map(esp => 
+    this.convertirEspecialidadACodigo(esp)
+  );
+  
+  // 🔥 TAMBIÉN convertir la especialidad de la sub-tarea a código
+  const especialidadSubtareaCodigo = this.convertirEspecialidadACodigo(subtarea.especialidad);
+  
+  // Verificar si hacen match
+  const puedeAceptar = especialidadesVendedorCodigos.includes(especialidadSubtareaCodigo);
+  
+  console.log(`🔍 ¿Puede aceptar "${subtarea.codigo}"?`, puedeAceptar);
+  console.log(`   Especialidad sub-tarea (original): ${subtarea.especialidad}`);
+  console.log(`   Especialidad sub-tarea (código): ${especialidadSubtareaCodigo}`);
+  console.log(`   Especialidades vendedor (códigos): ${especialidadesVendedorCodigos.join(', ')}`);
+  
+  return puedeAceptar;
+}
+
+  // 🔥 HELPER: Convierte nombres a códigos
+  private convertirEspecialidadACodigo(especialidad: string): string {
+    const mapeo: { [key: string]: string } = {
+      "Consultoría en desarrollo de sistemas": "CONSULTORIA_DESARROLLO",
+      "Consultoría en hardware": "CONSULTORIA_HARDWARE",
+      "Consultoría en software": "CONSULTORIA_SOFTWARE",
+      "Desarrollo de software a medida": "DESARROLLO_MEDIDA",
+      "Desarrollo y producción de software empaquetado": "SOFTWARE_EMPAQUETADO",
+      "Actualización y adaptación de software": "ACTUALIZACION_SOFTWARE",
+      "Servicios de alojamiento de datos (hosting)": "HOSTING",
+      "Servicios de procesamiento de datos": "PROCESAMIENTO_DATOS",
+      "Servicios en la nube (cloud computing)": "CLOUD_COMPUTING",
+      "Servicios de recuperación ante desastres": "RECUPERACION_DESASTRES",
+      "Servicios de ciberseguridad": "CIBERSEGURIDAD",
+      "Capacitación en TI": "CAPACITACION_TI"
+    };
+    
+    return mapeo[especialidad] || especialidad;
+  }
 
   cargarSubtareasDisponibles(): void {
     this.cargando = true;
     
-    this.subtareaService.obtenerSubtareasDisponibles(this.especialidadVendedor).subscribe({
+    // Enviar todas las especialidades separadas por coma
+    const especialidadesStr = this.especialidadesVendedor.join(',');
+    
+    this.subtareaService.obtenerSubtareasDisponibles(especialidadesStr).subscribe({
       next: (response) => {
         console.log('✅ Respuesta del servidor:', response);
         
@@ -582,26 +657,26 @@ export class RequerimientoComponent implements OnInit {
   }
 
   agruparPorProyecto(): void {
-  const proyectosMap = new Map<number, ProyectoConSubtareas>();
-  
-  this.subtareasDisponibles.forEach(subtarea => {
-    if (!proyectosMap.has(subtarea.proyecto_id)) {
-      proyectosMap.set(subtarea.proyecto_id, {
-        proyecto_id: subtarea.proyecto_id,
-        proyecto_titulo: subtarea.proyecto_titulo || 'Proyecto sin título',  // 🔥 Valor por defecto
-        cliente_id: 0,
-        cliente_nombre: subtarea.cliente_nombre || 'Cliente desconocido',   // 🔥 Valor por defecto
-        subtareas: [],
-        expandido: false
-      });
-    }
+    const proyectosMap = new Map<number, ProyectoConSubtareas>();
     
-    proyectosMap.get(subtarea.proyecto_id)!.subtareas.push(subtarea);
-  });
-  
-  this.proyectosAgrupados = Array.from(proyectosMap.values());
-  console.log('📊 Proyectos agrupados:', this.proyectosAgrupados);
-}
+    this.subtareasDisponibles.forEach(subtarea => {
+      if (!proyectosMap.has(subtarea.proyecto_id)) {
+        proyectosMap.set(subtarea.proyecto_id, {
+          proyecto_id: subtarea.proyecto_id,
+          proyecto_titulo: subtarea.proyecto_titulo || 'Proyecto sin título',
+          cliente_id: 0,
+          cliente_nombre: subtarea.cliente_nombre || 'Cliente desconocido',
+          subtareas: [],
+          expandido: false
+        });
+      }
+      
+      proyectosMap.get(subtarea.proyecto_id)!.subtareas.push(subtarea);
+    });
+    
+    this.proyectosAgrupados = Array.from(proyectosMap.values());
+    console.log('📊 Proyectos agrupados:', this.proyectosAgrupados);
+  }
 
   toggleProyecto(proyectoId: number): void {
     const proyecto = this.proyectosAgrupados.find(p => p.proyecto_id === proyectoId);
@@ -611,52 +686,50 @@ export class RequerimientoComponent implements OnInit {
   }
 
   aceptarSubtarea(subtareaId: number): void {
-  const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
-  
-  if (!subtarea) {
-    alert('❌ Sub-tarea no encontrada');
-    return;
-  }
-
-  const confirmacion = confirm(
-    `¿Deseas aceptar esta sub-tarea?\n\n` +
-    `📋 ${subtarea.titulo}\n` +
-    `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
-    `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
-    `Una vez aceptada, aparecerá en "Mis Proyectos"`
-  );
-
-  if (!confirmacion) return;
-
-  const vendedorId = this.obtenerVendedorId();
-  if (!vendedorId) {
-    alert('❌ Error: No se pudo obtener tu ID de vendedor');
-    return;
-  }
-
-  this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
-    next: (response) => {
-      console.log('✅ Sub-tarea aceptada:', response);
-      alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
-      
-      // 🔥 ACTUALIZACIÓN OPTIMIZADA: Solo quitar la sub-tarea aceptada
-      // En lugar de recargar todo, solo filtrar la que se aceptó
-      this.subtareasDisponibles = this.subtareasDisponibles.filter(s => s.id !== subtareaId);
-      
-      // Actualizar contador
-      this.totalSubtareasDisponibles--;
-      
-      // Reagrupar proyectos
-      this.agruparPorProyecto();
-      
-      console.log('📊 Sub-tareas restantes:', this.subtareasDisponibles.length);
-    },
-    error: (error) => {
-      console.error('❌ Error al aceptar sub-tarea:', error);
-      alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
+    const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
+    
+    if (!subtarea) {
+      alert('❌ Sub-tarea no encontrada');
+      return;
     }
-  });
-}
+
+    // Verificar de nuevo antes de aceptar
+    if (!this.puedeAceptarSubtarea(subtarea)) {
+      alert('❌ No tienes la especialidad requerida para esta sub-tarea');
+      return;
+    }
+
+    const confirmacion = confirm(
+      `¿Deseas aceptar esta sub-tarea?\n\n` +
+      `📋 ${subtarea.titulo}\n` +
+      `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
+      `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
+      `Una vez aceptada, aparecerá en "Mis Proyectos"`
+    );
+
+    if (!confirmacion) return;
+
+    const vendedorId = this.obtenerVendedorId();
+    if (!vendedorId) {
+      alert('❌ Error: No se pudo obtener tu ID de vendedor');
+      return;
+    }
+
+    this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
+      next: (response) => {
+        console.log('✅ Sub-tarea aceptada:', response);
+        alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
+        
+        this.subtareasDisponibles = this.subtareasDisponibles.filter(s => s.id !== subtareaId);
+        this.totalSubtareasDisponibles--;
+        this.agruparPorProyecto();
+      },
+      error: (error) => {
+        console.error('❌ Error al aceptar sub-tarea:', error);
+        alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
+      }
+    });
+  }
 
   volverAtras(): void {
     this.router.navigate(['/vendedor/bienvenida']);
@@ -689,6 +762,6 @@ export class RequerimientoComponent implements OnInit {
     if (usuario) {
       return JSON.parse(usuario).id;
     }
-    return null;
+    return 2; // Fallback
   }
 }
