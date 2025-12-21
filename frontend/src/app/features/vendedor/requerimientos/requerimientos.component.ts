@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { SubtareaService } from '../../../core/services/subtarea.service';
+import { ServicioAuth } from '../../../core/services/auth.service';
 
 interface ProyectoConSubtareas {
   proyecto_id: number;
@@ -555,40 +556,56 @@ export class RequerimientoComponent implements OnInit {
   constructor(
     private subtareaService: SubtareaService,
     private router: Router
+    
+    , private authService: ServicioAuth
   ) {}
 
   ngOnInit(): void {
-    this.obtenerEspecialidadVendedor();
-    this.cargarSubtareasDisponibles();
-  }
+  this.obtenerEspecialidadVendedor();
+  // 🔥 NO llamar aquí, llamar al final de obtenerEspecialidadVendedor()
+}
 
-  obtenerEspecialidadVendedor(): void {
-  const usuario = localStorage.getItem('usuario');
-  if (usuario) {
-    const vendedor = JSON.parse(usuario);
-    
-    console.log('🔍 Usuario completo:', vendedor);
-    console.log('🔍 Especialidades raw:', vendedor.especialidades);
-    console.log('🔍 Tipo:', typeof vendedor.especialidades);
-    
-    // 🔥 Guardar TODAS las especialidades
-    if (Array.isArray(vendedor.especialidades)) {
-      this.especialidadesVendedor = vendedor.especialidades;
-    } else if (typeof vendedor.especialidades === 'string') {
-      try {
-        // Si viene como JSON string
-        const parsed = JSON.parse(vendedor.especialidades);
-        this.especialidadesVendedor = Array.isArray(parsed) ? parsed : [vendedor.especialidades];
-      } catch {
-        // Si viene como string con comas
-        this.especialidadesVendedor = vendedor.especialidades.split(',').map((e: string) => e.trim());
-      }
+obtenerEspecialidadVendedor(): void {
+  let usuario = localStorage.getItem('usuario');
+  
+  // 🔥 FALLBACK: Si localStorage está vacío, intentar obtener del servicio
+  if (!usuario) {
+    console.warn('⚠️ localStorage vacío, intentando obtener del AuthService...');
+    const usuarioActual = this.authService?.obtenerUsuarioActual();
+    if (usuarioActual) {
+      usuario = JSON.stringify(usuarioActual);
+      localStorage.setItem('usuario', usuario); // Guardarlo para próximas veces
+    } else {
+      console.error('❌ No hay usuario en localStorage ni en AuthService');
+      this.cargando = false;
+      return;
     }
-    
-    console.log('✅ Especialidades cargadas:', this.especialidadesVendedor);
-  } else {
-    console.warn('⚠️ No hay usuario en localStorage');
   }
+  
+  const vendedor = JSON.parse(usuario);
+  
+  console.log('🔍 Usuario completo:', vendedor);
+  console.log('🔍 Especialidades raw:', vendedor.especialidades);
+  console.log('🔍 Tipo:', typeof vendedor.especialidades);
+  
+  // 🔥 Guardar TODAS las especialidades
+  if (Array.isArray(vendedor.especialidades)) {
+    this.especialidadesVendedor = vendedor.especialidades;
+  } else if (typeof vendedor.especialidades === 'string') {
+    try {
+      // Si viene como JSON string
+      const parsed = JSON.parse(vendedor.especialidades);
+      this.especialidadesVendedor = Array.isArray(parsed) ? parsed : [vendedor.especialidades];
+    } catch {
+      // Si viene como string con comas
+      this.especialidadesVendedor = vendedor.especialidades.split(',').map((e: string) => e.trim());
+    }
+  }
+  
+  console.log('✅ Especialidades cargadas:', this.especialidadesVendedor);
+  
+  // 🔥 AHORA SÍ cargar sub-tareas
+  this.cargarSubtareasDisponibles();
 }
 
   // 🔥 NUEVO MÉTODO: Verifica si puede aceptar la sub-tarea
@@ -632,29 +649,45 @@ export class RequerimientoComponent implements OnInit {
     return mapeo[especialidad] || especialidad;
   }
 
-  cargarSubtareasDisponibles(): void {
-    this.cargando = true;
-    
-    // Enviar todas las especialidades separadas por coma
-    const especialidadesStr = this.especialidadesVendedor.join(',');
-    
-    this.subtareaService.obtenerSubtareasDisponibles(especialidadesStr).subscribe({
-      next: (response) => {
-        console.log('✅ Respuesta del servidor:', response);
-        
-        this.subtareasDisponibles = response.subtareas || [];
-        this.totalSubtareasDisponibles = response.total || 0;
-        
-        this.agruparPorProyecto();
-        
-        this.cargando = false;
-      },
-      error: (error) => {
-        console.error('❌ Error al cargar sub-tareas:', error);
-        this.cargando = false;
-      }
-    });
+ cargarSubtareasDisponibles(): void {
+  // 🔥 VALIDACIÓN: Si no hay especialidades, obtenerlas primero
+  if (!this.especialidadesVendedor || this.especialidadesVendedor.length === 0) {
+    console.warn('⚠️ Especialidades vacías, recargando usuario...');
+    this.obtenerEspecialidadVendedor();
+    return;
   }
+
+  this.cargando = true;
+  
+  // 🔥 CONVERTIR A CÓDIGOS antes de enviar
+  const especialidadesCodigos = this.especialidadesVendedor.map(esp => 
+    this.convertirEspecialidadACodigo(esp)
+  );
+  const especialidadesStr = especialidadesCodigos.join(',');
+  
+  console.log('🔍 Especialidades del vendedor (nombres):', this.especialidadesVendedor);
+  console.log('🔍 Especialidades convertidas (códigos):', especialidadesCodigos);
+  console.log('🔍 String enviado al backend:', especialidadesStr);
+  
+  this.subtareaService.obtenerSubtareasDisponibles(especialidadesStr).subscribe({
+    next: (response) => {
+      console.log('✅ Respuesta del servidor:', response);
+      console.log('📊 Sub-tareas recibidas:', response.subtareas);
+      console.log('📊 Total:', response.total);
+      
+      this.subtareasDisponibles = response.subtareas || [];
+      this.totalSubtareasDisponibles = response.total || 0;
+      
+      this.agruparPorProyecto();
+      
+      this.cargando = false;
+    },
+    error: (error) => {
+      console.error('❌ Error al cargar sub-tareas:', error);
+      this.cargando = false;
+    }
+  });
+}
 
   agruparPorProyecto(): void {
     const proyectosMap = new Map<number, ProyectoConSubtareas>();
@@ -686,50 +719,48 @@ export class RequerimientoComponent implements OnInit {
   }
 
   aceptarSubtarea(subtareaId: number): void {
-    const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
-    
-    if (!subtarea) {
-      alert('❌ Sub-tarea no encontrada');
-      return;
-    }
-
-    // Verificar de nuevo antes de aceptar
-    if (!this.puedeAceptarSubtarea(subtarea)) {
-      alert('❌ No tienes la especialidad requerida para esta sub-tarea');
-      return;
-    }
-
-    const confirmacion = confirm(
-      `¿Deseas aceptar esta sub-tarea?\n\n` +
-      `📋 ${subtarea.titulo}\n` +
-      `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
-      `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
-      `Una vez aceptada, aparecerá en "Mis Proyectos"`
-    );
-
-    if (!confirmacion) return;
-
-    const vendedorId = this.obtenerVendedorId();
-    if (!vendedorId) {
-      alert('❌ Error: No se pudo obtener tu ID de vendedor');
-      return;
-    }
-
-    this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
-      next: (response) => {
-        console.log('✅ Sub-tarea aceptada:', response);
-        alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
-        
-        this.subtareasDisponibles = this.subtareasDisponibles.filter(s => s.id !== subtareaId);
-        this.totalSubtareasDisponibles--;
-        this.agruparPorProyecto();
-      },
-      error: (error) => {
-        console.error('❌ Error al aceptar sub-tarea:', error);
-        alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
-      }
-    });
+  const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
+  
+  if (!subtarea) {
+    alert('❌ Sub-tarea no encontrada');
+    return;
   }
+
+  if (!this.puedeAceptarSubtarea(subtarea)) {
+    alert('❌ No tienes la especialidad requerida para esta sub-tarea');
+    return;
+  }
+
+  const confirmacion = confirm(
+    `¿Deseas aceptar esta sub-tarea?\n\n` +
+    `📋 ${subtarea.titulo}\n` +
+    `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
+    `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
+    `Una vez aceptada, aparecerá en "Mis Proyectos"`
+  );
+
+  if (!confirmacion) return;
+
+  const vendedorId = this.obtenerVendedorId();
+  if (!vendedorId) {
+    alert('❌ Error: No se pudo obtener tu ID de vendedor');
+    return;
+  }
+
+  this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
+    next: (response) => {
+      console.log('✅ Sub-tarea aceptada:', response);
+      alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
+      
+      // 🔥 SOLUCIÓN: Recargar desde obtenerEspecialidadVendedor para asegurar que las especialidades estén cargadas
+      this.obtenerEspecialidadVendedor();
+    },
+    error: (error) => {
+      console.error('❌ Error al aceptar sub-tarea:', error);
+      alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
+    }
+  });
+}
 
   volverAtras(): void {
     this.router.navigate(['/vendedor/bienvenida']);

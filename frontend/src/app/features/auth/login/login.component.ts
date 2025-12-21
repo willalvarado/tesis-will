@@ -38,23 +38,27 @@ onSubmit() {
 
   this.authService.iniciarSesion(email, password).subscribe({
     next: () => {
-      // Suscribirse al observable del usuario actualizado
-      this.authService.usuarioActual$.subscribe(currentUser => {
-        if (!currentUser) return;
+      // 🔥 Obtener usuario directamente del servicio (ya está guardado)
+      const currentUser = this.authService.obtenerUsuarioActual();
+      
+      if (!currentUser) {
+        console.error('❌ No se pudo obtener el usuario');
+        this.loginError = 'Error al iniciar sesión';
+        return;
+      }
 
-        console.log('✅ Usuario actual desde service (observable):', currentUser);
+      console.log('✅ Usuario actual desde service:', currentUser);
 
-        const tipoUsuario = currentUser.tipo?.toLowerCase();
-        console.log('✅ Tipo de usuario final:', tipoUsuario);
+      const tipoUsuario = currentUser.tipo?.toLowerCase();
+      console.log('✅ Tipo de usuario final:', tipoUsuario);
 
-        if (tipoUsuario === 'cliente') {
-          this.router.navigate(['/cliente/bienvenida']);
-        } else if (tipoUsuario === 'vendedor') {
-          this.router.navigate(['/vendedor/bienvenida']);
-        } else {
-          this.loginError = 'Tipo de usuario desconocido.';
-        }
-      });
+      if (tipoUsuario === 'cliente') {
+        this.router.navigate(['/cliente/bienvenida']);
+      } else if (tipoUsuario === 'vendedor') {
+        this.router.navigate(['/vendedor/bienvenida']);
+      } else {
+        this.loginError = 'Tipo de usuario desconocido.';
+      }
     },
     error: () => {
       this.loginError = 'Credenciales incorrectas.';

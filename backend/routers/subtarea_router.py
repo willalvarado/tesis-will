@@ -49,16 +49,17 @@ def convertir_especialidades_a_codigos(especialidades_nombres: List[str]) -> Lis
     """
     codigos = []
     for nombre in especialidades_nombres:
-        # Buscar coincidencia exacta
-        codigo = ESPECIALIDADES_NOMBRE_A_CODIGO.get(nombre)
-        if codigo:
+        # 🔥 1. Si YA es un código válido, usarlo directamente
+        if nombre in ESPECIALIDADES_CODIGO_A_NOMBRE:
+            codigos.append(nombre)
+            print(f"✅ '{nombre}' ya es un código válido")
+        # 🔥 2. Buscar coincidencia como nombre completo
+        elif nombre in ESPECIALIDADES_NOMBRE_A_CODIGO:
+            codigo = ESPECIALIDADES_NOMBRE_A_CODIGO[nombre]
             codigos.append(codigo)
+            print(f"✅ '{nombre}' convertido a '{codigo}'")
         else:
-            # Si ya viene como código, usarlo directamente
-            if nombre in ESPECIALIDADES_CODIGO_A_NOMBRE:
-                codigos.append(nombre)
-            else:
-                print(f"⚠️ Especialidad no reconocida: {nombre}")
+            print(f"⚠️ Especialidad no reconocida: {nombre}")
     
     return codigos
 
@@ -159,7 +160,7 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
 
 @router.get("/disponibles")
 def obtener_subtareas_disponibles(
-    especialidades: Optional[str] = None,  # 🔥 Cambiado a plural
+    especialidad: Optional[str] = None,  # 🔥 Cambiar a SINGULAR
     prioridad: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
@@ -175,15 +176,15 @@ def obtener_subtareas_disponibles(
         query = db.query(SubTarea).join(
             Proyecto, SubTarea.proyecto_id == Proyecto.id
         ).filter(
-            SubTarea.estado == EstadoSubTarea.PENDIENTE,
-            SubTarea.vendedor_id == None,
-            Proyecto.fase == FaseProyecto.PUBLICADO
-        )
+    SubTarea.estado == EstadoSubTarea.PENDIENTE,
+    SubTarea.vendedor_id == None,
+    Proyecto.fase.in_([FaseProyecto.PUBLICADO, FaseProyecto.EN_PROGRESO])
+)
         
         # 🔥 FILTRO POR ESPECIALIDADES DEL VENDEDOR
-        if especialidades:
+        if especialidad:  
             # Separar especialidades (pueden venir como nombres o códigos)
-            lista_especialidades = [esp.strip() for esp in especialidades.split(',')]
+            lista_especialidades = [esp.strip() for esp in especialidad.split(',')]
             
             print(f"🔍 Especialidades recibidas del vendedor: {lista_especialidades}")
             
@@ -382,8 +383,8 @@ def aceptar_subtarea(
         
         # Verificar proyecto publicado
         proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
-        if proyecto.fase != FaseProyecto.PUBLICADO:
-            raise HTTPException(status_code=400, detail="Proyecto no publicado")
+        if proyecto.fase not in [FaseProyecto.PUBLICADO, FaseProyecto.EN_PROGRESO]:
+            raise HTTPException(status_code=400, detail="Proyecto no disponible para asignar sub-tareas")
         
         # Asignar sub-tarea
         subtarea.vendedor_id = data.vendedor_id
