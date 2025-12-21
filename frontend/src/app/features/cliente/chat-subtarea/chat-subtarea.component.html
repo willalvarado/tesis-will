@@ -1,16 +1,19 @@
 <div class="chat-subtarea-container">
   <!-- Header -->
-  <div class="page-header">
-    <button class="btn-volver" (click)="volver()">
-      ← Volver a Requerimientos
-    </button>
-    <div class="header-info" *ngIf="subtarea">
-      <h2>{{ subtarea.subtarea?.codigo }} - {{ subtarea.subtarea?.titulo }}</h2>
-      <span class="estado-badge" [style.background-color]="getEstadoColor(subtarea.subtarea?.estado)">
-        {{ getEstadoIcon(subtarea.subtarea?.estado) }} {{ subtarea.subtarea?.estado }}
-      </span>
-    </div>
+<div class="page-header">
+  <button class="btn-volver" (click)="volver()">
+    ← Atrás
+  </button>
+  <div class="header-info" *ngIf="subtarea">
+    <h2>{{ subtarea.subtarea?.codigo }} - {{ subtarea.subtarea?.titulo }}</h2>
+    <span class="estado-badge" [style.background-color]="getEstadoColor(subtarea.subtarea?.estado)">
+      {{ getEstadoIcon(subtarea.subtarea?.estado) }} {{ subtarea.subtarea?.estado }}
+    </span>
   </div>
+  <button class="btn-dashboard" (click)="irADashboard()">
+    📊 Dashboard
+  </button>
+</div>
 
   <!-- Loading -->
   <div *ngIf="cargando" class="loading-state">

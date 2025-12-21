@@ -6,13 +6,18 @@
   min-height: 100vh;
 }
 
-/* Header */
+/* ========================================
+   HEADER
+   ======================================== */
 .proyecto-header {
   background: white;
-  padding: 20px;
+  padding: 20px 30px;
   border-radius: 12px;
   margin-bottom: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .btn-volver {
@@ -21,23 +26,28 @@
   color: #667eea;
   font-size: 1rem;
   cursor: pointer;
-  padding: 8px 0;
-  margin-bottom: 10px;
-  transition: color 0.3s;
+  padding: 10px 20px;
+  transition: all 0.3s;
+  font-weight: 600;
+  border-radius: 10px;
 }
 
 .btn-volver:hover {
+  background: #f8f9fa;
   color: #764ba2;
-  text-decoration: underline;
 }
 
 .proyecto-header h2 {
   margin: 0;
-  color: #333;
+  color: #2c3e50;
   font-size: 1.8rem;
+  flex: 1;
+  text-align: center;
 }
 
-/* Loading */
+/* ========================================
+   LOADING & ERROR
+   ======================================== */
 .loading {
   text-align: center;
   padding: 60px 20px;
@@ -58,7 +68,6 @@
   100% { transform: rotate(360deg); }
 }
 
-/* Error */
 .error-message {
   background: #fee;
   color: #c33;
@@ -68,127 +77,156 @@
   margin: 20px 0;
 }
 
-/* Stats Card */
+/* ========================================
+   STATS CARD
+   ======================================== */
 .stats-card {
   background: white;
   padding: 30px;
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stats-card h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-  font-size: 1.4rem;
+  margin: 0 0 24px 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* Progress Bar */
+/* ========================================
+   PROGRESS BAR
+   ======================================== */
 .progress-bar-container {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .progress-bar {
   width: 100%;
-  height: 30px;
-  background: #e0e0e0;
-  border-radius: 15px;
+  height: 32px;
+  background: #e5e7eb;
+  border-radius: 16px;
   overflow: hidden;
   position: relative;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, #667eea, #764ba2);
-  transition: width 0.5s ease;
-  border-radius: 15px;
+  transition: width 0.6s ease;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
 }
 
 .progress-text {
-  font-weight: 600;
+  font-weight: 700;
   color: #667eea;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
 }
 
-/* Stats Grid */
+/* ========================================
+   STATS GRID - MEJORADO
+   ======================================== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 15px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  margin-top: 24px;
 }
 
 .stat-item {
   text-align: center;
-  padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa, #e8eaf6);
-  border-radius: 10px;
-  transition: transform 0.3s;
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  transition: all 0.3s;
+  border: 2px solid transparent;
 }
 
 .stat-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  border-color: #667eea;
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
 }
 
 .stat-number {
   display: block;
-  font-size: 2rem;
-  font-weight: bold;
-  color: #667eea;
-  margin-bottom: 5px;
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
 }
 
 .stat-label {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   color: #666;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-/* Action Buttons */
+/* ========================================
+   ACTION BUTTONS
+   ======================================== */
 .action-buttons {
-  margin-top: 30px;
+  margin-top: 32px;
   text-align: center;
-  padding-top: 30px;
-  border-top: 2px dashed #e0e0e0;
+  padding-top: 32px;
+  border-top: 2px dashed #dee2e6;
 }
 
 .btn-publicar {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
   border: none;
-  padding: 15px 40px;
-  border-radius: 25px;
+  padding: 16px 48px;
+  border-radius: 12px;
   font-size: 1.1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 .btn-publicar:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
 .hint {
-  margin-top: 10px;
-  color: #666;
+  margin-top: 12px;
+  color: #6b7280;
   font-size: 0.9rem;
 }
 
-/* Sub-tareas Section */
+/* ========================================
+   SUB-TAREAS SECTION
+   ======================================== */
 .subtareas-section {
   background: white;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .subtareas-section h3 {
-  margin: 0 0 25px 0;
-  color: #333;
-  font-size: 1.4rem;
+  margin: 0 0 28px 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .subtareas-list {
@@ -196,23 +234,26 @@
   gap: 20px;
 }
 
-/* Sub-tarea Card */
+/* ========================================
+   SUB-TAREA CARD
+   ======================================== */
 .subtarea-card {
   background: #f9fafb;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
   border-left: 5px solid #ccc;
   transition: all 0.3s;
 }
 
 .subtarea-card:hover {
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  transform: translateX(5px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  transform: translateX(8px);
 }
 
 /* Estados */
 .estado-pendiente {
   border-left-color: #9e9e9e;
+  background: #fafafa;
 }
 
 .estado-asignado {
@@ -235,89 +276,152 @@
   background: #ffebee;
 }
 
-/* Sub-tarea Header */
+/* ========================================
+   SUB-TAREA HEADER
+   ======================================== */
 .subtarea-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
+  margin-bottom: 16px;
 }
 
 .subtarea-codigo {
   font-weight: 700;
   font-size: 1.1rem;
-  color: #333;
+  color: #2c3e50;
 }
 
 .subtarea-estado {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 5px 15px;
+  background: rgba(0, 0, 0, 0.08);
+  padding: 6px 16px;
   border-radius: 20px;
   font-size: 0.85rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
-/* Sub-tarea Body */
+/* ========================================
+   SUB-TAREA BODY
+   ======================================== */
 .subtarea-body h4 {
-  margin: 0 0 10px 0;
-  color: #333;
-  font-size: 1.2rem;
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 1.25rem;
+  font-weight: 600;
 }
 
 .subtarea-descripcion {
-  color: #666;
-  line-height: 1.6;
-  margin-bottom: 15px;
+  color: #6b7280;
+  line-height: 1.7;
+  margin-bottom: 16px;
 }
 
 /* Meta información */
 .subtarea-meta {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 10px;
-  margin-top: 15px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .meta-item {
   display: flex;
   gap: 8px;
   align-items: center;
+  background: white;
+  padding: 10px 14px;
+  border-radius: 8px;
 }
 
 .meta-label {
   font-weight: 600;
-  color: #555;
+  color: #6b7280;
   font-size: 0.9rem;
 }
 
 .meta-value {
   color: #667eea;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.vendedor-asignado {
+  color: #10b981;
+  font-weight: 700;
+}
+
+.sin-vendedor .meta-value {
+  color: #f59e0b;
+  font-style: italic;
 }
 
 /* Fechas */
 .subtarea-fechas {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px solid rgba(0, 0, 0, 0.06);
   display: flex;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 12px;
 }
 
 .fecha-item {
   font-size: 0.85rem;
-  color: #666;
+  color: #6b7280;
   background: white;
-  padding: 5px 12px;
-  border-radius: 15px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-weight: 500;
 }
 
-/* Responsive */
+/* ========================================
+   BOTÓN VER CONVERSACIÓN - MEJORADO
+   ======================================== */
+.subtarea-actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 2px dashed #e5e7eb;
+}
+
+.btn-ver-conversacion {
+  width: 100%;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.btn-ver-conversacion::before {
+  content: '💬';
+  font-size: 20px;
+}
+
+.btn-ver-conversacion:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, #764ba2, #667eea);
+}
+
+.btn-ver-conversacion:active {
+  transform: translateY(0);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
 @media (max-width: 768px) {
   .proyecto-container {
-    padding: 10px;
+    padding: 12px;
   }
 
   .stats-grid {
@@ -329,6 +433,45 @@
   }
 
   .subtareas-section {
-    padding: 20px 15px;
+    padding: 20px 16px;
   }
+
+  .stats-card,
+  .subtareas-section {
+    padding: 20px;
+  }
+  /* ========================================
+   HEADER CON 3 ELEMENTOS
+   ======================================== */
+.proyecto-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.proyecto-header h2 {
+  flex: 1;
+  text-align: center;
+}
+
+.btn-dashboard {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+
+.btn-dashboard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
 }

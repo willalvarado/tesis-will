@@ -321,4 +321,11 @@ publicarProyecto(): void {
   cancelar(): void {
     this.router.navigate(['/cliente/requerimientos']);
   }
+  irARequerimientos(): void {
+  this.router.navigate(['/cliente/requerimientos']);
+}
+
+irADashboard(): void {
+  this.router.navigate(['/cliente/bienvenida']);
+}
 }

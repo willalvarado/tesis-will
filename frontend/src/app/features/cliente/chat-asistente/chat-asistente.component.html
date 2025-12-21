@@ -1,18 +1,28 @@
 <div class="chat-container">
-  <!-- Header -->
-  <div class="chat-header">
-    <div class="assistant-info">
-      <div class="avatar">🤖</div>
-      <div class="info">
-        <h3>Analista de Proyectos con IA</h3>
-        <p>
-          <span *ngIf="!proyectoId">Iniciando análisis profundo...</span>
-          <span *ngIf="proyectoId && !analisisCompletado">Proyecto {{proyectoId}} · Análisis en progreso</span>
-          <span *ngIf="analisisCompletado">Proyecto {{proyectoId}} · Análisis completado</span>
-        </p>
-      </div>
+  
+<!-- Header -->
+<div class="chat-header">
+  <div class="assistant-info">
+    <div class="avatar">🤖</div>
+    <div class="info">
+      <h3>Analista de Proyectos con IA</h3>
+      <p>
+        <span *ngIf="!proyectoId">Iniciando análisis profundo...</span>
+        <span *ngIf="proyectoId && !analisisCompletado">Proyecto {{proyectoId}} · Análisis en progreso</span>
+        <span *ngIf="analisisCompletado">Proyecto {{proyectoId}} · Análisis completado</span>
+      </p>
     </div>
   </div>
+  
+  <div class="header-actions">
+    <button class="btn-header btn-requerimientos" (click)="irARequerimientos()">
+      📋 Requerimientos
+    </button>
+    <button class="btn-header btn-dashboard" (click)="irADashboard()">
+      📊 Dashboard
+    </button>
+  </div>
+</div>
 
   <!-- Chat Messages Area -->
   <div class="chat-messages" #chatMessages>

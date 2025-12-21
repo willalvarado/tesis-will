@@ -6,11 +6,14 @@
       <p>Gestiona todos tus proyectos desde un solo lugar</p>
     </div>
     <div class="header-actions">
-      <button class="btn-nuevo" routerLink="/cliente/chat-asistente">
-        ➕ Nuevo Proyecto
+      <button class="btn-dashboard" (click)="irADashboard()">
+        📊 Dashboard
       </button>
       <button class="btn-refresh" (click)="cargarProyectos()" [disabled]="cargando">
         🔄 Actualizar
+      </button>
+      <button class="btn-nuevo" routerLink="/cliente/chat-asistente">
+        ➕ Crear Proyecto
       </button>
     </div>
   </div>
@@ -29,63 +32,6 @@
 
   <!-- Contenido principal -->
   <div *ngIf="!cargando && !error" class="proyectos-sections">
-
-    <!-- 🔍 EN ANÁLISIS -->
-    <section class="seccion" *ngIf="proyectosAnalisis.length > 0">
-      <div class="seccion-header">
-        <h2>🔍 En Análisis</h2>
-        <span class="badge">{{ proyectosAnalisis.length }}</span>
-      </div>
-      <p class="seccion-descripcion">Proyectos creados pero no publicados aún</p>
-
-      <div class="proyectos-grid">
-        <div *ngFor="let proyecto of proyectosAnalisis" class="proyecto-card analisis">
-          <div class="card-header" (click)="toggleProyecto(proyecto)">
-            <div class="card-title">
-              <h3>{{ proyecto.titulo }}</h3>
-              <span class="fase-badge" [style.background-color]="obtenerColorFase(proyecto.fase || '')">
-                En Análisis
-              </span>
-            </div>
-            <span class="expand-icon" *ngIf="proyecto.total_subtareas">
-              {{ proyecto.expandido ? '▼' : '▶' }}
-            </span>
-          </div>
-
-          <div class="card-body">
-            <p class="descripcion">{{ proyecto.descripcion }}</p>
-            
-            <div class="card-meta">
-              <span class="meta-item">📅 {{ formatearFecha(proyecto.created_at) }}</span>
-              <span class="meta-item" *ngIf="proyecto.total_subtareas">
-                🔧 {{ proyecto.total_subtareas }} sub-tareas
-              </span>
-            </div>
-
-            <div class="card-actions">
-              <button class="btn-secondary" (click)="verDetalleProyecto(proyecto)">
-                👁️ Ver Detalle
-              </button>
-              <button class="btn-primary" (click)="publicarProyecto(proyecto, $event)">
-                📢 Publicar
-              </button>
-              <button class="btn-danger" (click)="eliminarProyecto(proyecto, $event)">
-                🗑️
-              </button>
-            </div>
-          </div>
-
-          <!-- Sub-tareas (si están expandidas) -->
-          <div class="subtareas-container" *ngIf="proyecto.expandido && proyecto.subtareas">
-            <div class="subtarea-item" *ngFor="let subtarea of proyecto.subtareas">
-              <span class="subtarea-codigo">{{ subtarea.codigo }}</span>
-              <span class="subtarea-titulo">{{ subtarea.titulo }}</span>
-              <span class="subtarea-estado">{{ obtenerIconoEstado(subtarea.estado) }} {{ subtarea.estado }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- 📢 PUBLICADOS -->
     <section class="seccion" *ngIf="proyectosPublicados.length > 0">
@@ -248,9 +194,9 @@
     </section>
 
     <!-- Empty State -->
-    <div *ngIf="proyectosAnalisis.length === 0 && proyectosPublicados.length === 0 && 
-                proyectosEnProgreso.length === 0 && proyectosCompletados.length === 0 &&
-                proyectosCancelados.length === 0" 
+    <div *ngIf="proyectosPublicados.length === 0 && 
+                proyectosEnProgreso.length === 0 && 
+                proyectosCompletados.length === 0" 
          class="empty-state">
       <div class="empty-icon">📋</div>
       <h3>No tienes proyectos aún</h3>

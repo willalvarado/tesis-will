@@ -243,4 +243,7 @@ export class RequerimientosListComponent implements OnInit {
     console.warn('⚠️ localStorage vacío. Usando ID cliente hardcodeado: 2');
     return 2;  // ✅ FALLBACK: ID del cliente will@gmail.com
   }
+  irADashboard(): void {
+  this.router.navigate(['/cliente/bienvenida']);
+}
 }

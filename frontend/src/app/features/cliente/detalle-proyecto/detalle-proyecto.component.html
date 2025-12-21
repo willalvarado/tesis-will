@@ -1,11 +1,14 @@
 <div class="proyecto-container">
   <!-- Header -->
-  <div class="proyecto-header">
-    <button class="btn-volver" (click)="volver()">
-      ← Volver a mis proyectos
-    </button>
-    <h2>Detalle del Proyecto</h2>
-  </div>
+<div class="proyecto-header">
+  <button class="btn-volver" (click)="volver()">
+    ← Volver a mis proyectos
+  </button>
+  <h2>Detalle del Proyecto</h2>
+  <button class="btn-dashboard" (click)="irADashboard()">
+    📊 Dashboard
+  </button>
+</div>
 
   <!-- Loading -->
   <div *ngIf="cargando" class="loading">
@@ -22,64 +25,70 @@
   <div *ngIf="estadisticas && !cargando" class="proyecto-content">
     
     <!-- Estadísticas generales -->
-    <div class="stats-card">
-      <h3>📊 Progreso General</h3>
-      
-      <div class="progress-bar-container">
-        <div class="progress-bar">
-          <div 
-            class="progress-fill" 
-            [style.width.%]="estadisticas.progreso_porcentaje"
-          ></div>
-        </div>
-        <span class="progress-text">{{ estadisticas.progreso_porcentaje }}% Completado</span>
-      </div>
+<div class="stats-card">
+  <h3>📊 Filtrar Sub-tareas</h3>
 
-      <div class="stats-grid">
-        <div class="stat-item">
-          <span class="stat-number">{{ estadisticas.total_subtareas }}</span>
-          <span class="stat-label">Total Sub-tareas</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ estadisticas.pendientes }}</span>
-          <span class="stat-label">Pendientes</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ estadisticas.asignadas }}</span>
-          <span class="stat-label">Asignadas</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ estadisticas.en_progreso }}</span>
-          <span class="stat-label">En Progreso</span>
-        </div>
-        <div class="stat-item">
-          <span class="stat-number">{{ estadisticas.completadas }}</span>
-          <span class="stat-label">Completadas</span>
-        </div>
-      </div>
-
-      <!-- Botón publicar (solo si hay sub-tareas pendientes sin asignar) -->
-      <div class="action-buttons" *ngIf="estadisticas.pendientes > 0">
-        <button class="btn-publicar" (click)="publicarProyecto()">
-          📢 Publicar Proyecto
-        </button>
-        <p class="hint">Las sub-tareas estarán disponibles para vendedores especializados</p>
-      </div>
+  <div class="stats-grid">
+    <div class="stat-item" 
+         [class.active]="filtroActivo === 'todas'"
+         (click)="filtrarSubtareas('todas')">
+      <span class="stat-number">{{ estadisticas.total_subtareas }}</span>
+      <span class="stat-label">Todas</span>
     </div>
+    <div class="stat-item" 
+         [class.active]="filtroActivo === 'PENDIENTE'"
+         (click)="filtrarSubtareas('PENDIENTE')">
+      <span class="stat-number">{{ estadisticas.pendientes }}</span>
+      <span class="stat-label">Pendientes</span>
+    </div>
+    <div class="stat-item" 
+         [class.active]="filtroActivo === 'ASIGNADA'"
+         (click)="filtrarSubtareas('ASIGNADA')">
+      <span class="stat-number">{{ estadisticas.asignadas }}</span>
+      <span class="stat-label">Asignadas</span>
+    </div>
+    <div class="stat-item" 
+         [class.active]="filtroActivo === 'EN_PROGRESO'"
+         (click)="filtrarSubtareas('EN_PROGRESO')">
+      <span class="stat-number">{{ estadisticas.en_progreso }}</span>
+      <span class="stat-label">En Progreso</span>
+    </div>
+    <div class="stat-item" 
+         [class.active]="filtroActivo === 'COMPLETADO'"
+         (click)="filtrarSubtareas('COMPLETADO')">
+      <span class="stat-number">{{ estadisticas.completadas }}</span>
+      <span class="stat-label">Completadas</span>
+    </div>
+  </div>
+
+  <!-- Botón publicar (solo si hay sub-tareas pendientes sin asignar) -->
+  <div class="action-buttons" *ngIf="estadisticas.pendientes > 0">
+    <button class="btn-publicar" (click)="publicarProyecto()">
+      📢 Publicar Proyecto
+    </button>
+    <p class="hint">Las sub-tareas estarán disponibles para vendedores especializados</p>
+  </div>
+</div>
 
     <!-- Lista de sub-tareas -->
-    <div class="subtareas-section">
-      <h3>🔧 Sub-tareas del Proyecto</h3>
+<div class="subtareas-section">
+  <h3>🔧 Sub-tareas del Proyecto 
+    <span *ngIf="filtroActivo !== 'todas'" class="filtro-badge">
+      ({{ filtroActivo }})
+    </span>
+  </h3>
 
-      <div class="subtareas-list">
-        <div 
-          *ngFor="let subtarea of estadisticas.subtareas" 
-          class="subtarea-card"
-          [class]="getEstadoColor(subtarea.estado)"
-          (click)="verDetalleSubtarea(subtarea)"
-          [style.cursor]="subtarea.vendedor_id ? 'pointer' : 'not-allowed'"
-          [style.opacity]="subtarea.vendedor_id ? '1' : '0.6'"
-          [title]="subtarea.vendedor_id ? 'Clic para ver conversación con ' + subtarea.vendedor_nombre : 'Esta sub-tarea aún no tiene vendedor asignado'"
+  <div class="subtareas-list">
+    <div 
+      *ngFor="let subtarea of subtareasFiltradas" 
+      class="subtarea-card"
+      [class]="getEstadoColor(subtarea.estado)"
+      (click)="verDetalleSubtarea(subtarea)"
+      [style.cursor]="subtarea.vendedor_id ? 'pointer' : 'not-allowed'"
+      [style.opacity]="subtarea.vendedor_id ? '1' : '0.6'"
+      [title]="subtarea.vendedor_id ? 'Clic para ver conversación con ' + subtarea.vendedor_nombre : 'Esta sub-tarea aún no tiene vendedor asignado'"
+    >
+      <!-- ... resto del contenido igual ... -->
         >
           <!-- Header de la sub-tarea -->
           <div class="subtarea-header">
@@ -133,7 +142,7 @@
             <!-- 🔥 BOTÓN VISUAL (solo si tiene vendedor) -->
             <div class="subtarea-actions" *ngIf="subtarea.vendedor_id">
               <button class="btn-ver-conversacion" (click)="verDetalleSubtarea(subtarea); $event.stopPropagation()">
-                💬 Ver conversación con vendedor
+                Ver conversación con vendedor
               </button>
             </div>
           </div>

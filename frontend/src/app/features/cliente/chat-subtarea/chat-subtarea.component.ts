@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subscription } from 'rxjs';
 import { SubtareaService, SubTarea } from '../../../core/services/subtarea.service';
 import { ChatService, Mensaje as MensajeChat } from '../../../core/services/chat.service';
+import { Location } from '@angular/common';
 
 interface MensajeUI {
   id: number;
@@ -53,7 +54,9 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
     private router: Router,
     private http: HttpClient,
     private subtareaService: SubtareaService,
-    private chatService: ChatService
+    private chatService: ChatService,
+    private location: Location
+
   ) {}
 
   ngOnInit(): void {
@@ -276,8 +279,8 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
   }
 
   volver(): void {
-    this.router.navigate(['/cliente/requerimientos']);
-  }
+  this.location.back(); // ← Regresa a la página anterior
+}
 
   getEstadoColor(estado: string): string {
     const colores: { [key: string]: string } = {
@@ -332,4 +335,7 @@ export class ChatSubtareaComponent implements OnInit, OnDestroy {
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
   }
+  irADashboard(): void {
+  this.router.navigate(['/cliente/bienvenida']);
+}
 }

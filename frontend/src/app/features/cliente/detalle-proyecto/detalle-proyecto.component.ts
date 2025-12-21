@@ -17,6 +17,11 @@ export class DetalleProyectoComponent implements OnInit {
   cargando = true;
   error: string = '';
 
+   // 🔥 NUEVAS PROPIEDADES
+  filtroActivo: string = 'todas';
+  subtareasFiltradas: SubTarea[] = [];
+
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -38,6 +43,7 @@ export class DetalleProyectoComponent implements OnInit {
     this.subtareaService.obtenerSubtareasProyecto(this.proyectoId).subscribe({
       next: (data) => {
         this.estadisticas = data;
+        this.subtareasFiltradas = data.subtareas || []; // 🔥 Inicializar con todas
         this.cargando = false;
       },
       error: (error) => {
@@ -46,6 +52,23 @@ export class DetalleProyectoComponent implements OnInit {
         this.cargando = false;
       }
     });
+  }
+
+  // 🔥 NUEVO MÉTODO
+  filtrarSubtareas(estado: string): void {
+    this.filtroActivo = estado;
+    
+    if (!this.estadisticas || !this.estadisticas.subtareas) return;
+    
+    if (estado === 'todas') {
+      this.subtareasFiltradas = this.estadisticas.subtareas;
+    } else {
+      this.subtareasFiltradas = this.estadisticas.subtareas.filter(
+        subtarea => subtarea.estado === estado
+      );
+    }
+    
+    console.log(`🔍 Filtro: ${estado} → ${this.subtareasFiltradas.length} sub-tareas`);
   }
 
   // 🔥 NUEVO: Ver detalle de sub-tarea
@@ -121,4 +144,7 @@ export class DetalleProyectoComponent implements OnInit {
   volver(): void {
     this.router.navigate(['/cliente/requerimientos']);
   }
+  irADashboard(): void {
+  this.router.navigate(['/cliente/bienvenida']);
+}
 }
