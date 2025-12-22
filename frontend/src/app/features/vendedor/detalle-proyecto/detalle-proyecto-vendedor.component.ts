@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SubtareaService } from '../../../core/services/subtarea.service';
+import { Location } from '@angular/common';
 
 interface Proyecto {
   id: number;
@@ -52,7 +53,8 @@ export class DetalleProyectoVendedorComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router,
     private http: HttpClient,
-    private subtareaService: SubtareaService
+    private subtareaService: SubtareaService,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -134,8 +136,8 @@ export class DetalleProyectoVendedorComponent implements OnInit {
   }
 
   volverAtras(): void {
-    this.router.navigate(['/vendedor/mis-proyectos']);
-  }
+  this.location.back(); // ← Cambiar a location.back()
+}
 
   private obtenerVendedorId(): number | null {
   const usuario = localStorage.getItem('usuario');
@@ -175,4 +177,7 @@ export class DetalleProyectoVendedorComponent implements OnInit {
       year: 'numeric'
     }).format(new Date(fecha));
   }
+  irADashboard(): void {
+  this.router.navigate(['/vendedor/bienvenida']);
+}
 }

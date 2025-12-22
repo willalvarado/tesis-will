@@ -1,10 +1,13 @@
 <div class="detalle-container">
-  <!-- Header con botón volver -->
   <div class="header">
-    <button class="btn-back" (click)="volverAtras()">
-      ← Volver a Mis Proyectos
-    </button>
-  </div>
+  <button class="btn-back" (click)="volverAtras()">
+    ← Atrás
+  </button>
+  <h2 class="page-title">Detalle del Proyecto</h2>
+  <button class="btn-dashboard" (click)="irADashboard()">
+    📊 Dashboard
+  </button>
+</div>
 
   <!-- Loading -->
   <div *ngIf="cargando" class="loading">
