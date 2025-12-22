@@ -103,6 +103,10 @@ class ActualizarProgresoRequest(BaseModel):
     notas: Optional[str] = None
 
 
+class PresupuestoUpdate(BaseModel):
+    presupuesto: float
+
+
 # ========================================
 # HELPERS
 # ========================================
@@ -160,54 +164,38 @@ def agregar_nombres_a_subtareas(subtareas: List[SubTarea], db: Session) -> List[
 
 @router.get("/disponibles")
 def obtener_subtareas_disponibles(
-    especialidad: Optional[str] = None,  # 🔥 Cambiar a SINGULAR
+    especialidad: Optional[str] = None,
     prioridad: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """
     Obtiene sub-tareas disponibles (sin asignar) de proyectos PUBLICADOS.
-    
-    Params:
-        - especialidades: Lista de especialidades separadas por coma (nombres completos o códigos)
-        - prioridad: ALTA, MEDIA, BAJA
     """
     try:
-        # Sub-tareas disponibles de proyectos publicados
         query = db.query(SubTarea).join(
             Proyecto, SubTarea.proyecto_id == Proyecto.id
         ).filter(
-    SubTarea.estado == EstadoSubTarea.PENDIENTE,
-    SubTarea.vendedor_id == None,
-    Proyecto.fase.in_([FaseProyecto.PUBLICADO, FaseProyecto.EN_PROGRESO])
-)
+            SubTarea.estado == EstadoSubTarea.PENDIENTE,
+            SubTarea.vendedor_id == None,
+            Proyecto.fase.in_([FaseProyecto.PUBLICADO, FaseProyecto.EN_PROGRESO])
+        )
         
-        # 🔥 FILTRO POR ESPECIALIDADES DEL VENDEDOR
         if especialidad:  
-            # Separar especialidades (pueden venir como nombres o códigos)
             lista_especialidades = [esp.strip() for esp in especialidad.split(',')]
-            
             print(f"🔍 Especialidades recibidas del vendedor: {lista_especialidades}")
             
-            # Convertir NOMBRES a CÓDIGOS
             codigos_vendedor = convertir_especialidades_a_codigos(lista_especialidades)
-            
             print(f"🔍 Códigos del vendedor: {codigos_vendedor}")
             
             if codigos_vendedor:
-                # Filtrar sub-tareas que tengan CUALQUIERA de estas especialidades
                 query = query.filter(SubTarea.especialidad.in_(codigos_vendedor))
                 print(f"✅ Filtrando sub-tareas con especialidades: {codigos_vendedor}")
-            else:
-                print(f"⚠️ No se pudieron convertir especialidades a códigos")
         
-        # Filtro por prioridad
         if prioridad:
             prioridad_upper = prioridad.upper()
             if prioridad_upper in ["ALTA", "MEDIA", "BAJA"]:
                 query = query.filter(SubTarea.prioridad == prioridad_upper)
-                print(f"🔍 Filtrando por prioridad: {prioridad_upper}")
         
-        # 🔥 Ordenar por prioridad manualmente (ALTA > MEDIA > BAJA)
         from sqlalchemy import case
         
         prioridad_orden = case(
@@ -218,7 +206,7 @@ def obtener_subtareas_disponibles(
         )
         
         subtareas = query.order_by(
-            prioridad_orden,  # ALTA primero
+            prioridad_orden,
             SubTarea.created_at.desc()
         ).all()
         
@@ -241,9 +229,6 @@ def obtener_mis_subtareas(
 ):
     """
     Obtiene las sub-tareas asignadas a un vendedor específico.
-    
-    Params:
-        - estado: ASIGNADA, EN_PROGRESO, COMPLETADO
     """
     try:
         query = db.query(SubTarea).filter(
@@ -272,6 +257,33 @@ def obtener_mis_subtareas(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/vendedor/{vendedor_id}")
+def obtener_subtareas_vendedor_dashboard(
+    vendedor_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene todas las sub-tareas de un vendedor para el dashboard.
+    Incluye conteo de mensajes no leídos por sub-tarea.
+    """
+    try:
+        subtareas = db.query(SubTarea).filter(
+            SubTarea.vendedor_id == vendedor_id
+        ).all()
+        
+        subtareas_info = agregar_nombres_a_subtareas(subtareas, db)
+        
+        # TODO: Agregar conteo de mensajes no leídos
+        for st in subtareas_info:
+            st['mensajes_no_leidos'] = 0
+        
+        return subtareas_info
+        
+    except Exception as e:
+        print(f"❌ Error obteniendo sub-tareas del vendedor: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/proyecto/{proyecto_id}")
 def obtener_subtareas_proyecto(
     proyecto_id: int,
@@ -279,7 +291,6 @@ def obtener_subtareas_proyecto(
 ):
     """
     Obtiene todas las sub-tareas de un proyecto específico.
-    Útil para que el cliente vea el progreso.
     """
     try:
         proyecto = db.query(Proyecto).filter(Proyecto.id == proyecto_id).first()
@@ -290,7 +301,6 @@ def obtener_subtareas_proyecto(
             SubTarea.proyecto_id == proyecto_id
         ).order_by(SubTarea.codigo).all()
         
-        # Estadísticas
         total = len(subtareas)
         pendientes = sum(1 for st in subtareas if st.estado == EstadoSubTarea.PENDIENTE)
         asignadas = sum(1 for st in subtareas if st.estado == EstadoSubTarea.ASIGNADA)
@@ -326,14 +336,8 @@ def aceptar_subtarea(
 ):
     """
     Un vendedor acepta una sub-tarea disponible.
-    
-    1. Verifica que esté disponible
-    2. Asigna al vendedor
-    3. Cambia estado a ASIGNADA
-    4. Actualiza el proyecto si es necesario
     """
     try:
-        # Verificar sub-tarea
         subtarea = db.query(SubTarea).filter(SubTarea.id == data.subtarea_id).first()
         if not subtarea:
             raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
@@ -344,54 +348,37 @@ def aceptar_subtarea(
         if subtarea.estado != EstadoSubTarea.PENDIENTE:
             raise HTTPException(status_code=400, detail="Sub-tarea no disponible")
         
-        # Verificar vendedor
         vendedor = db.query(Vendedor).filter(Vendedor.id == data.vendedor_id).first()
         if not vendedor:
             raise HTTPException(status_code=404, detail="Vendedor no encontrado")
         
-        # 🔥 PARSEAR ESPECIALIDADES DESDE JSON
         especialidades_vendedor = []
         if vendedor.especialidades:
             try:
-                # Si es string JSON, parsearlo
                 if isinstance(vendedor.especialidades, str):
                     especialidades_vendedor = json.loads(vendedor.especialidades)
-                # Si ya es lista, usarla directamente
                 elif isinstance(vendedor.especialidades, list):
                     especialidades_vendedor = vendedor.especialidades
             except json.JSONDecodeError as e:
                 print(f"❌ Error parseando especialidades: {e}")
                 especialidades_vendedor = []
         
-        print(f"🔍 Especialidades del vendedor (raw): {vendedor.especialidades}")
-        print(f"🔍 Especialidades del vendedor (parseadas): {especialidades_vendedor}")
-        
-        # Convertir nombres a códigos
         codigos_vendedor = convertir_especialidades_a_codigos(especialidades_vendedor)
         
-        print(f"🔍 Códigos del vendedor: {codigos_vendedor}")
-        print(f"🔍 Especialidad requerida por sub-tarea: {subtarea.especialidad}")
-        
-        # Verificar que el vendedor tenga la especialidad
         if subtarea.especialidad not in codigos_vendedor:
-            print(f"⚠️ Vendedor {vendedor.id} no tiene especialidad {subtarea.especialidad}")
-            print(f"   Especialidades del vendedor: {codigos_vendedor}")
             raise HTTPException(
                 status_code=403, 
                 detail=f"No tienes la especialidad requerida: {ESPECIALIDADES_CODIGO_A_NOMBRE.get(subtarea.especialidad, subtarea.especialidad)}"
             )
         
-        # Verificar proyecto publicado
         proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
         if proyecto.fase not in [FaseProyecto.PUBLICADO, FaseProyecto.EN_PROGRESO]:
-            raise HTTPException(status_code=400, detail="Proyecto no disponible para asignar sub-tareas")
+            raise HTTPException(status_code=400, detail="Proyecto no disponible")
         
-        # Asignar sub-tarea
         subtarea.vendedor_id = data.vendedor_id
         subtarea.estado = EstadoSubTarea.ASIGNADA
         subtarea.fecha_asignacion = datetime.utcnow()
         
-        # Actualizar proyecto a EN_PROGRESO si es la primera sub-tarea asignada
         if proyecto.fase == FaseProyecto.PUBLICADO:
             proyecto.fase = FaseProyecto.EN_PROGRESO
         
@@ -425,10 +412,6 @@ def actualizar_progreso_subtarea(
 ):
     """
     Actualiza el estado de una sub-tarea asignada.
-    
-    Estados posibles:
-    - EN_PROGRESO: El vendedor está trabajando
-    - COMPLETADO: El vendedor terminó
     """
     try:
         subtarea = db.query(SubTarea).filter(SubTarea.id == data.subtarea_id).first()
@@ -438,12 +421,11 @@ def actualizar_progreso_subtarea(
         if not subtarea.vendedor_id:
             raise HTTPException(status_code=400, detail="Sub-tarea no asignada")
         
-        # Validar transición de estado
         nuevo_estado = EstadoSubTarea[data.estado.upper()]
         
         if nuevo_estado == EstadoSubTarea.EN_PROGRESO:
             if subtarea.estado not in [EstadoSubTarea.ASIGNADA, EstadoSubTarea.PENDIENTE]:
-                raise HTTPException(status_code=400, detail="Solo se puede pasar a EN_PROGRESO desde ASIGNADA o PENDIENTE")
+                raise HTTPException(status_code=400, detail="Transición de estado inválida")
             subtarea.fecha_inicio = datetime.utcnow()
         
         elif nuevo_estado == EstadoSubTarea.COMPLETADO:
@@ -451,10 +433,8 @@ def actualizar_progreso_subtarea(
                 raise HTTPException(status_code=400, detail="Transición de estado inválida")
             subtarea.fecha_completado = datetime.utcnow()
             
-            # Actualizar contador en proyecto
             proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
             if proyecto:
-                # Recalcular sub-tareas completadas
                 completadas_count = db.query(SubTarea).filter(
                     SubTarea.proyecto_id == proyecto.id,
                     SubTarea.estado == EstadoSubTarea.COMPLETADO
@@ -462,11 +442,9 @@ def actualizar_progreso_subtarea(
                 
                 proyecto.subtareas_completadas = completadas_count
                 
-                # Calcular progreso del proyecto
                 if proyecto.total_subtareas > 0:
                     proyecto.progreso = int((completadas_count / proyecto.total_subtareas) * 100)
                 
-                # Si todas están completadas, marcar proyecto como completado
                 if completadas_count >= proyecto.total_subtareas:
                     proyecto.fase = FaseProyecto.COMPLETADO
                     proyecto.estado = "COMPLETADO"
@@ -542,20 +520,16 @@ def obtener_detalle_subtarea(
 ):
     """
     Obtiene el detalle completo de una sub-tarea específica.
-    Incluye info del proyecto, cliente y vendedor asignado.
     """
     try:
-        # Buscar sub-tarea
         subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
         if not subtarea:
             raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
         
-        # Obtener proyecto
         proyecto = db.query(Proyecto).filter(Proyecto.id == subtarea.proyecto_id).first()
         if not proyecto:
             raise HTTPException(status_code=404, detail="Proyecto no encontrado")
         
-        # Obtener cliente
         cliente = db.query(UsuarioDB).filter(UsuarioDB.id == proyecto.cliente_id).first()
         cliente_info = {
             "id": cliente.id,
@@ -563,7 +537,6 @@ def obtener_detalle_subtarea(
             "correo": cliente.correo
         } if cliente else None
         
-        # Obtener vendedor (si está asignado)
         vendedor_info = None
         if subtarea.vendedor_id:
             vendedor = db.query(Vendedor).filter(Vendedor.id == subtarea.vendedor_id).first()
@@ -574,10 +547,7 @@ def obtener_detalle_subtarea(
                     "correo": vendedor.correo,
                     "especialidades": vendedor.especialidades
                 }
-
-                
         
-        # 🔥 CONVERTIR CÓDIGO A NOMBRE para mostrar
         especialidad_mostrar = ESPECIALIDADES_CODIGO_A_NOMBRE.get(subtarea.especialidad, subtarea.especialidad)
         
         return {
@@ -587,7 +557,7 @@ def obtener_detalle_subtarea(
                 "codigo": subtarea.codigo,
                 "titulo": subtarea.titulo,
                 "descripcion": subtarea.descripcion,
-                "especialidad": especialidad_mostrar,  # 🔥 NOMBRE COMPLETO
+                "especialidad": especialidad_mostrar,
                 "estado": subtarea.estado.value if hasattr(subtarea.estado, 'value') else subtarea.estado,
                 "prioridad": subtarea.prioridad,
                 "presupuesto": float(subtarea.presupuesto),
@@ -614,13 +584,7 @@ def obtener_detalle_subtarea(
     except Exception as e:
         print(f"❌ Error obteniendo detalle de sub-tarea: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-    
-    # ========================================
-# 🔥 ACTUALIZAR PRESUPUESTO
-# ========================================
 
-class PresupuestoUpdate(BaseModel):
-    presupuesto: float
 
 @router.put("/{subtarea_id}/actualizar-presupuesto")
 def actualizar_presupuesto_subtarea(
@@ -630,19 +594,15 @@ def actualizar_presupuesto_subtarea(
 ):
     """
     Actualiza el presupuesto de una sub-tarea.
-    Solo el vendedor asignado puede hacerlo.
     """
     try:
-        # Buscar sub-tarea
         subtarea = db.query(SubTarea).filter(SubTarea.id == subtarea_id).first()
         if not subtarea:
             raise HTTPException(status_code=404, detail="Sub-tarea no encontrada")
         
-        # Validar presupuesto
         if data.presupuesto < 0:
             raise HTTPException(status_code=400, detail="El presupuesto no puede ser negativo")
         
-        # Actualizar presupuesto
         subtarea.presupuesto = data.presupuesto
         subtarea.updated_at = datetime.utcnow()
         
@@ -666,5 +626,3 @@ def actualizar_presupuesto_subtarea(
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-    
-    

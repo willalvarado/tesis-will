@@ -6,7 +6,9 @@
     </div>
     
     <nav class="menu">
-      
+      <a href="#/vendedor/bienvenida" class="nav-link active">
+        <span>🏠</span> Dashboard
+      </a>
       <a href="#/vendedor/requerimientos" class="nav-link">
         <span>📝</span> Mis Requerimientos
       </a>
@@ -26,14 +28,11 @@
     </button>
   </aside>
 
-  <!-- Main content  -->
+  <!-- Main content -->
   <main class="main">
-   <!-- <header class="header">
-      <button class="notification" (click)="toggleNotificaciones()">🔔</button>
-    </header>-->
-
+    
     <!-- Dashboard Section -->
-    <section *ngIf="activeSection === 'dashboard'" class="section active">
+    <section class="section active">
       
       <!-- 🧡 SECCIÓN DE MARCA - Conecta Solutions -->
       <div class="marca-header">
@@ -52,51 +51,57 @@
         <p>Conecta con clientes y crece</p>
       </div>
 
+      <!-- Loading -->
+      <div *ngIf="loading" class="loading-state">
+        <div class="spinner"></div>
+        <p>Cargando estadísticas...</p>
+      </div>
+
       <!-- 📊 ESTADÍSTICAS DEL MES -->
-      <div class="estadisticas-mes">
+      <div *ngIf="!loading" class="estadisticas-mes">
         <h3>📊 Estadísticas del Mes</h3>
         
         <div class="stats-grid">
-          <!-- Proyectos Activos -->
+          <!-- Sub-tareas Activas -->
           <div class="stat-card stat-activos">
             <div class="stat-icon">💼</div>
             <div class="stat-info">
-              <p>Proyectos Activos</p>
+              <p>Sub-tareas Activas</p>
               <h2>{{ contarProyectosActivos() }}</h2>
             </div>
           </div>
 
-          <!-- Proyectos Completados -->
+          <!-- Sub-tareas Completadas -->
           <div class="stat-card stat-completados">
             <div class="stat-icon">✅</div>
             <div class="stat-info">
-              <p>Proyectos Completados</p>
+              <p>Sub-tareas Completadas</p>
               <h2>{{ contarProyectosCompletados() }}</h2>
             </div>
           </div>
 
-          <!-- Ganancias del Mes - AHORA DINÁMICO -->
+          <!-- Total Ganado -->
           <div class="stat-card stat-ganancias">
             <div class="stat-icon">💰</div>
             <div class="stat-info">
               <p>Total Ganado</p>
-              <h2>${{ totalGanadoReal.toFixed(2) }}</h2>
+              <h2>${{ estadisticas.total_ganado.toFixed(2) }}</h2>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 📋 RESUMEN POR ESTADOS (Reemplaza Actividad Reciente) -->
-      <div class="resumen-estados">
-        <h3>📋 Resumen de Proyectos por Estado</h3>
+      <!-- 📋 RESUMEN POR ESTADOS -->
+      <div *ngIf="!loading" class="resumen-estados">
+        <h3>📋 Resumen de Sub-tareas por Estado</h3>
         
         <div class="estados-grid">
-          <!-- Asignados -->
+          <!-- Asignadas -->
           <div class="estado-item estado-asignado">
             <div class="estado-icon">📌</div>
             <div class="estado-info">
-              <span class="estado-nombre">Asignados</span>
-              <span class="estado-cantidad">{{ resumenEstados.asignados }}</span>
+              <span class="estado-nombre">Asignadas</span>
+              <span class="estado-cantidad">{{ estadisticas.asignadas }}</span>
             </div>
           </div>
 
@@ -105,150 +110,37 @@
             <div class="estado-icon">🔄</div>
             <div class="estado-info">
               <span class="estado-nombre">En Proceso</span>
-              <span class="estado-cantidad">{{ resumenEstados.en_proceso }}</span>
+              <span class="estado-cantidad">{{ estadisticas.en_progreso }}</span>
             </div>
           </div>
 
-          <!-- Completados -->
+          <!-- Completadas -->
           <div class="estado-item estado-completado">
             <div class="estado-icon">✅</div>
             <div class="estado-info">
-              <span class="estado-nombre">Completados</span>
-              <span class="estado-cantidad">{{ resumenEstados.completados }}</span>
+              <span class="estado-nombre">Completadas</span>
+              <span class="estado-cantidad">{{ estadisticas.completadas }}</span>
             </div>
           </div>
 
-          <!-- Cancelados -->
+          <!-- Canceladas -->
           <div class="estado-item estado-cancelado">
             <div class="estado-icon">❌</div>
             <div class="estado-info">
-              <span class="estado-nombre">Cancelados</span>
-              <span class="estado-cantidad">{{ resumenEstados.cancelados }}</span>
+              <span class="estado-nombre">Canceladas</span>
+              <span class="estado-cantidad">{{ estadisticas.canceladas }}</span>
             </div>
           </div>
         </div>
 
         <!-- Total -->
         <div class="total-proyectos">
-          <span>Total de Proyectos:</span>
-          <strong>{{ resumenEstados.asignados + resumenEstados.en_proceso + resumenEstados.completados + resumenEstados.cancelados }}</strong>
+          <span>Total de Sub-tareas:</span>
+          <strong>{{ getTotalSubtareas() }}</strong>
         </div>
       </div>
+
     </section>
 
-    <!-- Requerimientos Section -->
-    <section *ngIf="activeSection === 'requerimientos'" class="section">
-      <div class="section-header">
-        <h2>📝 Requerimientos Disponibles</h2>
-        <button class="btn-refresh" (click)="cargarRequerimientosDisponibles()">
-          🔄 Actualizar
-        </button>
-      </div>
-
-      <div *ngIf="loading" class="loading-state">
-        <div class="spinner"></div>
-        <p>Cargando requerimientos...</p>
-      </div>
-
-      <div *ngIf="!loading && requerimientosDisponibles.length === 0" class="empty-state">
-        <span class="empty-icon">📭</span>
-        <h3>No hay requerimientos disponibles</h3>
-        <p>Vuelve más tarde o ajusta tus filtros</p>
-      </div>
-
-      <div class="requerimientos-list" *ngIf="!loading && requerimientosDisponibles.length > 0">
-        <div *ngFor="let req of requerimientosDisponibles" class="requerimiento-card">
-          <div class="card-badge">{{ req.especialidad }}</div>
-          <h3>{{ req.titulo }}</h3>
-          <p class="req-descripcion">{{ req.mensaje }}</p>
-          <div class="card-meta">
-            <span>📅 {{ formatDate(req.fecha_creacion) }}</span>
-            <span>👤 Cliente #{{ req.cliente_id }}</span>
-          </div>
-          <button class="btn-primary" (click)="tomarRequerimiento(req.id)">
-            Tomar Proyecto
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Mis Proyectos Section -->
-    <section *ngIf="activeSection === 'proyectos'" class="section">
-      <div class="section-header">
-        <h2>💼 Mis Proyectos</h2>
-      </div>
-
-      <div class="proyectos-list" *ngIf="misRequerimientos.length > 0">
-        <div *ngFor="let proyecto of misRequerimientos" class="proyecto-card">
-          <div class="proyecto-header">
-            <h3>{{ proyecto.titulo }}</h3>
-            <span class="estado-badge" [ngClass]="getEstadoBadgeClass(proyecto.estado)">
-              {{ proyecto.estado }}
-            </span>
-          </div>
-          <p>{{ proyecto.mensaje }}</p>
-          <div class="proyecto-actions">
-            <select [value]="proyecto.estado" (change)="cambiarEstado(proyecto.id, $event)" class="estado-select">
-              <option value="asignado">Asignado</option>
-              <option value="en_proceso">En Proceso</option>
-              <option value="completado">Completado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-            <button class="btn-secondary">Ver Detalles</button>
-          </div>
-        </div>
-      </div>
-
-      <div *ngIf="misRequerimientos.length === 0" class="empty-state">
-        <span class="empty-icon">💼</span>
-        <h3>No tienes proyectos asignados</h3>
-        <p>Ve a la sección de requerimientos para tomar nuevos proyectos</p>
-      </div>
-    </section>
-
-    <!-- Mi Perfil Section -->
-    <section *ngIf="activeSection === 'perfil'" class="section">
-      <div class="perfil-header">
-        <div class="perfil-avatar">
-          <span>{{ obtenerIniciales() }}</span>
-        </div>
-        <div class="perfil-info">
-          <h2>{{ vendedor?.nombre }}</h2>
-          <p>{{ vendedor?.correo }}</p>
-          <span class="tipo-badge">Vendedor Profesional</span>
-        </div>
-      </div>
-
-      <div class="perfil-content">
-        <div class="info-group">
-          <h3>Mi Especialidad</h3>
-          <span class="especialidad-tag">{{ vendedorEspecialidad }}</span>
-        </div>
-
-        <div class="info-group">
-          <h3>Estadísticas</h3>
-          <div class="stats-list">
-            <div class="stat-item">
-              <span>Proyectos Completados:</span>
-              <strong>{{ contarProyectosCompletados() }}</strong>
-            </div>
-            <div class="stat-item">
-              <span>Tasa de Éxito:</span>
-              <strong>95%</strong>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Historial Section -->
-    <section *ngIf="activeSection === 'historial'" class="section">
-      <div class="section-content">
-        <h2>🗒️ Historial de Proyectos</h2>
-        <p>Aquí aparecerá el historial completo de tus proyectos.</p>
-        <div class="loading" style="margin-top: 20px;"></div>
-        <p style="margin-top: 10px;">Función en desarrollo...</p>
-      </div>
-    </section>
   </main>
 </div>
