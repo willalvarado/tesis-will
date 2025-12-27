@@ -2,7 +2,27 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ProyectosService } from '../../../core/services/proyectos.service';
+import { HttpClient } from '@angular/common/http';
+
+interface SubTarea {
+  id: number;
+  codigo: string;
+  titulo: string;
+  descripcion: string;
+  proyecto_titulo: string;
+  cliente_nombre: string;
+  estado: string;
+  prioridad: string;
+  presupuesto: number;
+  pagado: number;
+  estimacion_horas: number;
+  fecha_asignacion: string;
+  fecha_inicio: string;
+  fecha_completado: string;
+  created_at: string;
+  pagoPendiente?: number;
+  estadoPago?: string;
+}
 
 @Component({
   selector: 'app-historial-vendedor',
@@ -12,24 +32,25 @@ import { ProyectosService } from '../../../core/services/proyectos.service';
   styleUrls: ['./historial.component.css']
 })
 export class HistorialVendedorComponent implements OnInit {
-  proyectos: any[] = [];
-  proyectosFiltrados: any[] = [];
+  subtareas: SubTarea[] = [];
+  subtareasFiltradas: SubTarea[] = [];
   cargando: boolean = true;
   
   // Filtros
-  filtroEstado: string = 'todos'; // todos, completado, cancelado
+  filtroEstado: string = 'todos'; // todos, COMPLETADO, CANCELADO
   filtroPago: string = 'todos'; // todos, pagado, pendiente
-  filtroCliente: string = '';
+  filtroProyecto: string = '';
   filtroFecha: string = '';
   
   // Estadísticas
   totalGanado: number = 0;
-  proyectosCompletados: number = 0;
+  subtareasCompletadas: number = 0;
   pagosPendientes: number = 0;
+  horasTotales: number = 0;
 
-  constructor(
-    private proyectosService: ProyectosService
-  ) {}
+  private apiUrl = 'http://localhost:8000';
+
+  constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
     this.cargarHistorial();
@@ -45,67 +66,74 @@ export class HistorialVendedorComponent implements OnInit {
       return;
     }
 
-    this.proyectosService.obtenerProyectosVendedor(vendedorId).subscribe({
-      next: (proyectos) => {
-        // Filtrar solo completados y cancelados
-        this.proyectos = proyectos
-          .filter(p => p.estado === 'completado' || p.estado === 'cancelado')
-          .map(proyecto => ({
-            ...proyecto,
-            fecha_inicio: new Date(proyecto.fecha_inicio),
-            fecha_estimada: proyecto.fecha_estimada ? new Date(proyecto.fecha_estimada) : null,
-            fecha_completado: proyecto.fecha_completado ? new Date(proyecto.fecha_completado) : null,
-            pagoPendiente: proyecto.presupuesto - proyecto.pagado,
-            estadoPago: (proyecto.presupuesto - proyecto.pagado) === 0 ? 'pagado' : 'pendiente'
-          }))
-          .sort((a, b) => {
-            const fechaA = a.fecha_completado || a.updated_at;
-            const fechaB = b.fecha_completado || b.updated_at;
-            return new Date(fechaB).getTime() - new Date(fechaA).getTime();
-          });
+    // Obtener todas las sub-tareas del vendedor
+    this.http.get<SubTarea[]>(`${this.apiUrl}/subtareas/vendedor/${vendedorId}`)
+      .subscribe({
+        next: (subtareas) => {
+          console.log('✅ Sub-tareas del vendedor:', subtareas);
+          
+          // Filtrar solo completadas y canceladas
+          this.subtareas = subtareas
+            .filter(st => st.estado === 'COMPLETADO' || st.estado === 'CANCELADO')
+            .map(st => ({
+              ...st,
+              pagoPendiente: st.presupuesto - st.pagado,
+              estadoPago: (st.presupuesto - st.pagado) === 0 ? 'pagado' : 'pendiente'
+            }))
+            .sort((a, b) => {
+              const fechaA = new Date(a.fecha_completado || a.created_at);
+              const fechaB = new Date(b.fecha_completado || b.created_at);
+              return fechaB.getTime() - fechaA.getTime();
+            });
 
-        this.calcularEstadisticas();
-        this.aplicarFiltros();
-        this.cargando = false;
-      },
-      error: (error) => {
-        console.error('Error al cargar historial:', error);
-        this.cargando = false;
-      }
-    });
+          this.calcularEstadisticas();
+          this.aplicarFiltros();
+          this.cargando = false;
+        },
+        error: (error) => {
+          console.error('❌ Error al cargar historial:', error);
+          this.cargando = false;
+        }
+      });
   }
 
   calcularEstadisticas(): void {
-    this.proyectosCompletados = this.proyectos.filter(p => p.estado === 'completado').length;
-    this.totalGanado = this.proyectos
-      .filter(p => p.estado === 'completado')
-      .reduce((sum, p) => sum + p.pagado, 0);
-    this.pagosPendientes = this.proyectos
-      .reduce((sum, p) => sum + p.pagoPendiente, 0);
+    this.subtareasCompletadas = this.subtareas.filter(st => st.estado === 'COMPLETADO').length;
+    
+    this.totalGanado = this.subtareas
+      .filter(st => st.estado === 'COMPLETADO')
+      .reduce((sum, st) => sum + st.pagado, 0);
+    
+    this.pagosPendientes = this.subtareas
+      .reduce((sum, st) => sum + (st.presupuesto - st.pagado), 0);
+    
+    this.horasTotales = this.subtareas
+      .filter(st => st.estado === 'COMPLETADO')
+      .reduce((sum, st) => sum + (st.estimacion_horas || 0), 0);
   }
 
   aplicarFiltros(): void {
-    this.proyectosFiltrados = this.proyectos.filter(proyecto => {
+    this.subtareasFiltradas = this.subtareas.filter(subtarea => {
       // Filtro por estado
-      if (this.filtroEstado !== 'todos' && proyecto.estado !== this.filtroEstado) {
+      if (this.filtroEstado !== 'todos' && subtarea.estado !== this.filtroEstado) {
         return false;
       }
 
       // Filtro por pago
-      if (this.filtroPago !== 'todos' && proyecto.estadoPago !== this.filtroPago) {
+      if (this.filtroPago !== 'todos' && subtarea['estadoPago'] !== this.filtroPago) {
         return false;
       }
 
-      // Filtro por cliente
-      if (this.filtroCliente && !proyecto.cliente?.nombre.toLowerCase().includes(this.filtroCliente.toLowerCase())) {
+      // Filtro por proyecto
+      if (this.filtroProyecto && !subtarea.proyecto_titulo?.toLowerCase().includes(this.filtroProyecto.toLowerCase())) {
         return false;
       }
 
       // Filtro por fecha
       if (this.filtroFecha) {
-        const fechaProyecto = proyecto.fecha_completado || new Date(proyecto.updated_at);
+        const fechaSubtarea = new Date(subtarea.fecha_completado || subtarea.created_at);
         const fechaFiltro = new Date(this.filtroFecha);
-        if (fechaProyecto.toDateString() !== fechaFiltro.toDateString()) {
+        if (fechaSubtarea.toDateString() !== fechaFiltro.toDateString()) {
           return false;
         }
       }
@@ -117,7 +145,7 @@ export class HistorialVendedorComponent implements OnInit {
   limpiarFiltros(): void {
     this.filtroEstado = 'todos';
     this.filtroPago = 'todos';
-    this.filtroCliente = '';
+    this.filtroProyecto = '';
     this.filtroFecha = '';
     this.aplicarFiltros();
   }
@@ -127,11 +155,12 @@ export class HistorialVendedorComponent implements OnInit {
     if (usuario) {
       return JSON.parse(usuario).id;
     }
-    console.warn('⚠️ localStorage vacío. Usando ID hardcodeado: 3');
-    return 3;
+    console.warn('⚠️ localStorage vacío. Usando ID hardcodeado: 2');
+    return 2;
   }
 
-  formatearFecha(fecha: Date | string): string {
+  formatearFecha(fecha: Date | string | null): string {
+    if (!fecha) return 'No definida';
     const f = typeof fecha === 'string' ? new Date(fecha) : fecha;
     return new Intl.DateTimeFormat('es-ES', {
       day: '2-digit',
@@ -142,17 +171,26 @@ export class HistorialVendedorComponent implements OnInit {
 
   obtenerColorEstado(estado: string): string {
     const colores: { [key: string]: string } = {
-      'completado': '#10b981',
-      'cancelado': '#ef4444'
+      'COMPLETADO': '#10b981',
+      'CANCELADO': '#ef4444'
     };
     return colores[estado] || '#6b7280';
   }
 
   obtenerEtiquetaEstado(estado: string): string {
     const etiquetas: { [key: string]: string } = {
-      'completado': 'Completado',
-      'cancelado': 'Cancelado'
+      'COMPLETADO': 'Completado',
+      'CANCELADO': 'Cancelado'
     };
     return etiquetas[estado] || estado;
+  }
+
+  obtenerColorPrioridad(prioridad: string): string {
+    const colores: { [key: string]: string } = {
+      'ALTA': '#ef4444',
+      'MEDIA': '#f59e0b',
+      'BAJA': '#10b981'
+    };
+    return colores[prioridad] || '#6b7280';
   }
 }

@@ -2,8 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { ProyectosService } from '../../../core/services/proyectos.service';
-import { RequerimientosService } from '../../../core/services/requerimientos.service';
 
 interface Usuario {
   id: number;
@@ -12,11 +10,23 @@ interface Usuario {
   tipo: string;
 }
 
-interface ResumenEstados {
-  sin_asignar: number;
-  en_proceso: number;
+interface Proyecto {
+  id: number;
+  titulo: string;
+  estado: string;
+  fase: string;
+  presupuesto: number;
+  total_subtareas: number;
+  subtareas_completadas: number;
+}
+
+interface EstadisticasCliente {
+  en_analisis: number;
+  publicados: number;
+  en_progreso: number;
   completados: number;
   cancelados: number;
+  total_invertido: number;
 }
 
 @Component({
@@ -28,29 +38,27 @@ interface ResumenEstados {
 })
 export class BienvenidaClienteComponent implements OnInit {
   cliente: Usuario | null = null;
-  userName: string = 'Cliente'; // 🔥 AGREGADO para compatibilidad
+  
+  // Datos reales
+  misProyectos: Proyecto[] = [];
+  loading = false;
   
   // Estadísticas
-  requerimientosActivos: number = 0;
-  proyectosEnProceso: number = 0;
-  proyectosCompletados: number = 0;
-  totalInvertido: number = 0;
-  
-  // Resumen por estados
-  resumenEstados: ResumenEstados = {
-    sin_asignar: 0,
-    en_proceso: 0,
+  estadisticas: EstadisticasCliente = {
+    en_analisis: 0,
+    publicados: 0,
+    en_progreso: 0,
     completados: 0,
-    cancelados: 0
+    cancelados: 0,
+    total_invertido: 0
   };
 
   activeSection = 'dashboard';
+  private apiUrl = 'http://localhost:8000';
 
   constructor(
     private http: HttpClient,
-    private router: Router,
-    private proyectosService: ProyectosService,
-    private requerimientosService: RequerimientosService
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -61,73 +69,88 @@ export class BienvenidaClienteComponent implements OnInit {
     const userData = localStorage.getItem('usuario');
     if (userData) {
       this.cliente = JSON.parse(userData);
-      this.userName = this.cliente?.nombre || 'Cliente'; // 🔥 ACTUALIZAR userName
-      
       if (this.cliente?.tipo !== 'cliente') {
         this.router.navigate(['/login']);
       } else {
-        this.cargarEstadisticas();
+        this.cargarMisProyectos();
       }
     } else {
       this.router.navigate(['/login']);
     }
   }
 
-  cargarEstadisticas(): void {
+  cargarMisProyectos(): void {
     if (!this.cliente) return;
 
-    // Cargar proyectos del cliente
-    this.proyectosService.obtenerProyectosCliente(this.cliente.id).subscribe({
-      next: (proyectos) => {
-        console.log('Proyectos del cliente:', proyectos);
-        
-        // Calcular estadísticas
-        this.proyectosEnProceso = proyectos.filter(
-          p => p.estado === 'asignado' || p.estado === 'en_proceso'
-        ).length;
-
-        this.proyectosCompletados = proyectos.filter(
-          p => p.estado === 'completado'
-        ).length;
-
-        this.totalInvertido = proyectos
-          .filter(p => p.estado === 'completado')
-          .reduce((sum, p) => sum + (p.pagado || 0), 0);
-
-        // Resumen por estados (SIN 'pendiente', solo estados de proyectos)
-        this.resumenEstados = {
-          sin_asignar: proyectos.filter(p => p.estado === 'asignado').length,
-          en_proceso: proyectos.filter(p => p.estado === 'en_proceso').length,
-          completados: proyectos.filter(p => p.estado === 'completado').length,
-          cancelados: proyectos.filter(p => p.estado === 'cancelado').length
-        };
-      },
-      error: (err) => {
-        console.error('Error al cargar proyectos:', err);
-        // Datos por defecto si falla
-        this.proyectosEnProceso = 0;
-        this.proyectosCompletados = 0;
-        this.totalInvertido = 0;
-      }
-    });
-
-    // Cargar requerimientos activos (sin vendedor asignado)
-    this.requerimientosService.obtenerRequerimientosCliente(this.cliente.id).subscribe({
-      next: (requerimientos) => {
-        console.log('Requerimientos del cliente:', requerimientos);
-        this.requerimientosActivos = requerimientos.filter(
-          r => !r.vendedor_id || r.estado === 'pendiente'
-        ).length;
-      },
-      error: (err) => {
-        console.error('Error al cargar requerimientos:', err);
-        this.requerimientosActivos = 0;
-      }
-    });
+    this.loading = true;
+    
+    // 🔥 ENDPOINT: Obtener todos los proyectos del cliente
+    this.http.get<any>(`${this.apiUrl}/proyectos/cliente/${this.cliente.id}`)
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Proyectos del cliente:', response);
+          this.misProyectos = response.proyectos || [];
+          this.calcularEstadisticas();
+          this.loading = false;
+        },
+        error: (err) => {
+          console.error('❌ Error al cargar proyectos:', err);
+          this.loading = false;
+          this.estadisticas = {
+            en_analisis: 0,
+            publicados: 0,
+            en_progreso: 0,
+            completados: 0,
+            cancelados: 0,
+            total_invertido: 0
+          };
+        }
+      });
   }
 
-  setActiveSection(section: string): void {
-    this.activeSection = section;
+  calcularEstadisticas(): void {
+    // Contar por fase
+    this.estadisticas.en_analisis = this.misProyectos.filter(
+      p => p.fase === 'ANALISIS'
+    ).length;
+
+    this.estadisticas.publicados = this.misProyectos.filter(
+      p => p.fase === 'PUBLICADO'
+    ).length;
+
+    this.estadisticas.en_progreso = this.misProyectos.filter(
+      p => p.fase === 'EN_PROGRESO'
+    ).length;
+
+    this.estadisticas.completados = this.misProyectos.filter(
+      p => p.fase === 'COMPLETADO'
+    ).length;
+
+    this.estadisticas.cancelados = this.misProyectos.filter(
+      p => p.fase === 'CANCELADO'
+    ).length;
+
+    // Total invertido (presupuesto de proyectos completados)
+    this.estadisticas.total_invertido = this.misProyectos
+      .filter(p => p.fase === 'COMPLETADO')
+      .reduce((sum, p) => sum + (p.presupuesto || 0), 0);
+
+    console.log('📊 Estadísticas calculadas:', this.estadisticas);
+  }
+
+  contarProyectosActivos(): number {
+    return this.estadisticas.publicados + this.estadisticas.en_progreso;
+  }
+
+  contarProyectosCompletados(): number {
+    return this.estadisticas.completados;
+  }
+
+  getTotalProyectos(): number {
+    return this.estadisticas.en_analisis + 
+           this.estadisticas.publicados + 
+           this.estadisticas.en_progreso + 
+           this.estadisticas.completados;
   }
 
   obtenerIniciales(): string {
@@ -140,25 +163,11 @@ export class BienvenidaClienteComponent implements OnInit {
       .substring(0, 2);
   }
 
-  // 🔥 MÉTODO AGREGADO para compatibilidad
-  getInitials(): string {
-    return this.obtenerIniciales();
-  }
-
-  toggleNotificaciones(): void {
-    alert('🔔 Tienes 2 nuevas notificaciones:\n\n• Tu requerimiento tiene una propuesta\n• Nuevo mensaje del vendedor');
-  }
-
   cerrarSesion(): void {
     if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
       localStorage.removeItem('usuario');
       localStorage.removeItem('token');
       this.router.navigate(['/login']);
     }
-  }
-
-  // 🔥 MÉTODO AGREGADO para compatibilidad con el HTML viejo
-  logout(): void {
-    this.cerrarSesion();
   }
 }

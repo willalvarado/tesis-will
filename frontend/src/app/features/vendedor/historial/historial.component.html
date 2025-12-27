@@ -2,8 +2,8 @@
   <!-- Header -->
   <div class="page-header">
     <div class="header-content">
-      <h1>📊 Historial de Proyectos</h1>
-      <p>Proyectos completados y cancelados</p>
+      <h1>📊 Historial de Sub-tareas</h1>
+      <p>Sub-tareas completadas y canceladas</p>
     </div>
     <div class="header-buttons">
       <button class="btn-nav" routerLink="/vendedor/mis-proyectos">
@@ -31,8 +31,16 @@
     <div class="estadistica-card completados">
       <div class="estadistica-icon">✅</div>
       <div class="estadistica-info">
-        <span class="estadistica-label">Proyectos Completados</span>
-        <span class="estadistica-valor">{{ proyectosCompletados }}</span>
+        <span class="estadistica-label">Sub-tareas Completadas</span>
+        <span class="estadistica-valor">{{ subtareasCompletadas }}</span>
+      </div>
+    </div>
+
+    <div class="estadistica-card horas">
+      <div class="estadistica-icon">⏱️</div>
+      <div class="estadistica-info">
+        <span class="estadistica-label">Horas Trabajadas</span>
+        <span class="estadistica-valor">{{ horasTotales }}h</span>
       </div>
     </div>
 
@@ -56,11 +64,11 @@
 
     <div class="filtros-grid">
       <div class="filtro-item">
-        <label>Estado del Proyecto</label>
+        <label>Estado de Sub-tarea</label>
         <select [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" class="filtro-select">
           <option value="todos">Todos</option>
-          <option value="completado">Completado</option>
-          <option value="cancelado">Cancelado</option>
+          <option value="COMPLETADO">Completado</option>
+          <option value="CANCELADO">Cancelado</option>
         </select>
       </div>
 
@@ -74,12 +82,12 @@
       </div>
 
       <div class="filtro-item">
-        <label>Cliente</label>
+        <label>Proyecto</label>
         <input 
           type="text" 
-          [(ngModel)]="filtroCliente" 
+          [(ngModel)]="filtroProyecto" 
           (input)="aplicarFiltros()"
-          placeholder="Buscar por nombre..."
+          placeholder="Buscar por proyecto..."
           class="filtro-input"
         >
       </div>
@@ -102,36 +110,58 @@
     <p>Cargando historial...</p>
   </div>
 
-  <!-- Lista de Proyectos -->
+  <!-- Lista de Sub-tareas -->
   <div class="proyectos-lista" *ngIf="!cargando">
     <div class="lista-header">
-      <h3>Proyectos ({{ proyectosFiltrados.length }})</h3>
+      <h3>Sub-tareas del Historial ({{ subtareasFiltradas.length }})</h3>
     </div>
 
-    <div class="proyecto-item" *ngFor="let proyecto of proyectosFiltrados">
+    <div class="proyecto-item" *ngFor="let subtarea of subtareasFiltradas">
       <div class="proyecto-main">
         <div class="proyecto-icon">
-          <span *ngIf="proyecto.estado === 'completado'">✅</span>
-          <span *ngIf="proyecto.estado === 'cancelado'">❌</span>
+          <span *ngIf="subtarea.estado === 'COMPLETADO'">✅</span>
+          <span *ngIf="subtarea.estado === 'CANCELADO'">❌</span>
         </div>
 
         <div class="proyecto-info">
-          <h4>{{ proyecto.titulo }}</h4>
-          <p class="proyecto-descripcion">{{ proyecto.descripcion }}</p>
+          <div class="subtarea-codigo">{{ subtarea.codigo }}</div>
+          <h4>{{ subtarea.titulo }}</h4>
+          <p class="proyecto-descripcion">{{ subtarea.descripcion }}</p>
           
           <div class="proyecto-detalles">
             <span class="detalle-item">
-              <strong>👤 Cliente:</strong> {{ proyecto.cliente?.nombre || 'Cliente ' + proyecto.cliente_id }}
+              <strong>📁 Proyecto:</strong> {{ subtarea.proyecto_titulo }}
             </span>
             <span class="detalle-item">
-              <strong>📅 Finalizado:</strong> {{ formatearFecha(proyecto.fecha_completado || proyecto.updated_at) }}
+              <strong>👤 Cliente:</strong> {{ subtarea.cliente_nombre }}
+            </span>
+            <span class="detalle-item">
+              <strong>⏱️ Horas:</strong> {{ subtarea.estimacion_horas }}h
+            </span>
+            <span class="detalle-item">
+              <strong>🔴 Prioridad:</strong> 
+              <span [style.color]="obtenerColorPrioridad(subtarea.prioridad)">
+                {{ subtarea.prioridad }}
+              </span>
+            </span>
+          </div>
+
+          <div class="proyecto-detalles">
+            <span class="detalle-item">
+              <strong>📅 Asignada:</strong> {{ formatearFecha(subtarea.fecha_asignacion) }}
+            </span>
+            <span class="detalle-item" *ngIf="subtarea.fecha_inicio">
+              <strong>🚀 Iniciada:</strong> {{ formatearFecha(subtarea.fecha_inicio) }}
+            </span>
+            <span class="detalle-item" *ngIf="subtarea.fecha_completado">
+              <strong>✅ Completada:</strong> {{ formatearFecha(subtarea.fecha_completado) }}
             </span>
           </div>
         </div>
 
         <div class="proyecto-estado">
-          <span class="badge-estado" [style.background-color]="obtenerColorEstado(proyecto.estado)">
-            {{ obtenerEtiquetaEstado(proyecto.estado) }}
+          <span class="badge-estado" [style.background-color]="obtenerColorEstado(subtarea.estado)">
+            {{ obtenerEtiquetaEstado(subtarea.estado) }}
           </span>
         </div>
       </div>
@@ -140,22 +170,24 @@
         <div class="proyecto-pago">
           <div class="pago-item">
             <span class="pago-label">💰 Presupuesto:</span>
-            <span class="pago-valor">${{ proyecto.presupuesto }}</span>
+            <span class="pago-valor">\${{ subtarea.presupuesto.toFixed(2) }}</span>
           </div>
           <div class="pago-item">
             <span class="pago-label">✅ Pagado:</span>
-            <span class="pago-valor pagado">${{ proyecto.pagado }}</span>
+            <span class="pago-valor pagado">\${{ subtarea.pagado.toFixed(2) }}</span>
           </div>
           <div class="pago-item">
             <span class="pago-label">⏳ Pendiente:</span>
-            <span class="pago-valor" [class.pendiente]="proyecto.pagoPendiente > 0" [class.completo]="proyecto.pagoPendiente === 0">
-              ${{ proyecto.pagoPendiente }}
+            <span class="pago-valor" 
+                  [class.pendiente]="subtarea.presupuesto - subtarea.pagado > 0" 
+                  [class.completo]="subtarea.presupuesto - subtarea.pagado === 0">
+              \${{ (subtarea.presupuesto - subtarea.pagado).toFixed(2) }}
             </span>
           </div>
         </div>
 
         <div class="proyecto-acciones">
-          <button class="btn-ver-chat" [routerLink]="['/vendedor/chat', proyecto.id]">
+          <button class="btn-ver-chat" [routerLink]="['/vendedor/subtarea', subtarea.id]">
             💬 Ver Chat
           </button>
         </div>
@@ -163,16 +195,17 @@
     </div>
 
     <!-- Empty State -->
-    <div class="empty-state" *ngIf="proyectosFiltrados.length === 0">
+    <div class="empty-state" *ngIf="subtareasFiltradas.length === 0">
       <div class="empty-icon">📋</div>
-      <h3>No hay proyectos en el historial</h3>
-      <p *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroCliente || filtroFecha">
+      <h3>No hay sub-tareas en el historial</h3>
+      <p *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroProyecto || filtroFecha">
         Intenta ajustar los filtros para ver más resultados
       </p>
-      <p *ngIf="filtroEstado === 'todos' && filtroPago === 'todos' && !filtroCliente && !filtroFecha">
-        Los proyectos completados o cancelados aparecerán aquí
+      <p *ngIf="filtroEstado === 'todos' && filtroPago === 'todos' && !filtroProyecto && !filtroFecha">
+        Las sub-tareas completadas o canceladas aparecerán aquí
       </p>
-      <button class="btn-primary" (click)="limpiarFiltros()" *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroCliente || filtroFecha">
+      <button class="btn-primary" (click)="limpiarFiltros()" 
+              *ngIf="filtroEstado !== 'todos' || filtroPago !== 'todos' || filtroProyecto || filtroFecha">
         Limpiar Filtros
       </button>
     </div>
