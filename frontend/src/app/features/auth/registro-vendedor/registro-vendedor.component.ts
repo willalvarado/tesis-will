@@ -31,73 +31,77 @@ export class RegistroVendedorComponent implements OnInit {
 
   especialidadesSeleccionadas: string[] = [];
 
-  /**
-   * Constructor - Inicializa el componente y configura el formulario reactivo
-   * @param fb - FormBuilder para crear formularios reactivos
-   * @param http - HttpClient para realizar peticiones HTTP al backend
-   * @param servicioAuth - Servicio de autenticación personalizado
-   * @param router - Router para navegación entre páginas
-   */
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
     private servicioAuth: ServicioAuth,
     private router: Router
   ) {
-    // Crear formulario con validaciones específicas para vendedor
     this.formularioRegistro = this.fb.group({
-      nombreEmpresa: ['', Validators.required], // Nombre de empresa o personal
-      correo: ['', [Validators.required, Validators.email]], // Email con validación
-      especialidades: [[], Validators.required], // Array de especialidades requerido
-      contrasena: ['', [Validators.required, Validators.minLength(6)]], // Contraseña mínimo 6 caracteres
-      confirmarContrasena: ['', Validators.required] // Confirmación de contraseña
-    }, { validators: this.validarContrasenas }); // Validador personalizado para contraseñas
+      nombreEmpresa: ['', Validators.required],
+      correo: ['', [Validators.required, Validators.email]],
+      especialidades: [[], Validators.required],
+      contrasena: ['', [Validators.required, Validators.minLength(6)]],
+      confirmarContrasena: ['', Validators.required]
+    }, { validators: this.validarContrasenas });
   }
 
-  /**
-   * Método ngOnInit - Se ejecuta al inicializar el componente
-   * Recupera las especialidades seleccionadas del localStorage si existen
-   */
   ngOnInit() {
-    // Recuperar especialidades desde localStorage (viene de página de selección)
+    // Recuperar especialidades desde localStorage
     const recuperadas = localStorage.getItem('especialidadesSeleccionadas');
     const nombres = localStorage.getItem('especialidadesNombres');
 
-    // Si hay especialidades guardadas, cargarlas en el formulario
     if (recuperadas) {
       this.formularioRegistro.get('especialidades')?.setValue(JSON.parse(nombres || '[]'));
     }
+
+    // 🔥 NUEVO: Recuperar datos del formulario si existen
+    this.recuperarDatosTemporales();
   }
 
-  /**
-   * Getters - Facilitan el acceso a los controles del formulario en el HTML
-   */
   get nombreEmpresa() { return this.formularioRegistro.get('nombreEmpresa'); }
   get correo() { return this.formularioRegistro.get('correo'); }
   get especialidades() { return this.formularioRegistro.get('especialidades'); }
   get contrasena() { return this.formularioRegistro.get('contrasena'); }
   get confirmarContrasena() { return this.formularioRegistro.get('confirmarContrasena'); }
 
-  /**
-   * Validador personalizado - Verifica que las contraseñas coincidan
-   * @param form - FormGroup que contiene los campos del formulario
-   * @returns null si las contraseñas coinciden, objeto con error si no coinciden
-   */
   validarContrasenas(form: FormGroup) {
     const password = form.get('contrasena')?.value;
     const confirmPassword = form.get('confirmarContrasena')?.value;
     return password === confirmPassword ? null : { noCoinciden: true };
   }
 
-  /**
-   * Método principal - Procesa el envío del formulario de registro
-   * Envía datos al backend usando el servicio de autenticación
-   */
+  // 🔥 NUEVO: Guardar datos temporales antes de ir a especialidades
+  guardarDatosTemporales(): void {
+    const datosTemporales = {
+      nombreEmpresa: this.nombreEmpresa?.value || '',
+      correo: this.correo?.value || '',
+      contrasena: this.contrasena?.value || '',
+      confirmarContrasena: this.confirmarContrasena?.value || ''
+    };
+    
+    localStorage.setItem('datosRegistroTemporal', JSON.stringify(datosTemporales));
+  }
+
+  // 🔥 NUEVO: Recuperar datos temporales al volver de especialidades
+  recuperarDatosTemporales(): void {
+    const datosGuardados = localStorage.getItem('datosRegistroTemporal');
+    
+    if (datosGuardados) {
+      const datos = JSON.parse(datosGuardados);
+      
+      this.formularioRegistro.patchValue({
+        nombreEmpresa: datos.nombreEmpresa,
+        correo: datos.correo,
+        contrasena: datos.contrasena,
+        confirmarContrasena: datos.confirmarContrasena
+      });
+    }
+  }
+
   enviarRegistro() {
-    // Verificar si el formulario es válido antes de enviar
     if (this.formularioRegistro.invalid) return;
 
-    // Preparar datos para enviar al backend
     const datos = {
       nombreEmpresa: this.nombreEmpresa?.value,
       correo: this.correo?.value,
@@ -105,31 +109,29 @@ export class RegistroVendedorComponent implements OnInit {
       especialidades: this.especialidades?.value
     };
 
-    // Usar el servicio de autenticación para registrar vendedor
     this.servicioAuth.registrarVendedor(datos).subscribe({
       next: () => {
-        // Caso exitoso: mostrar mensaje y redirigir al login
         this.registroExitoso = '¡Registro exitoso! Redirigiendo al login...';
         this.errorRegistro = null;
+        
+        // 🔥 NUEVO: Limpiar localStorage después de registro exitoso
+        localStorage.removeItem('datosRegistroTemporal');
+        localStorage.removeItem('especialidadesSeleccionadas');
+        localStorage.removeItem('especialidadesNombres');
+        
         setTimeout(() => this.router.navigate(['/login']), 2000);
       },
       error: (err) => {
-        // Caso de error: mostrar mensaje de error al usuario
         this.errorRegistro = err.error?.detail || 'Error al registrar vendedor.';
         this.registroExitoso = null;
       }
     });
   }
 
-  /**
-   * Método para actualizar especialidades - Maneja select múltiple
-   * @param event - Evento del elemento select
-   */
   actualizarEspecialidades(event: Event): void {
     const selectElement = event.target as HTMLSelectElement;
     const selectedValues: string[] = [];
 
-    // Recorrer todas las opciones del select y obtener las seleccionadas
     for (let i = 0; i < selectElement.options.length; i++) {
       const option = selectElement.options[i];
       if (option.selected) {
@@ -137,27 +139,19 @@ export class RegistroVendedorComponent implements OnInit {
       }
     }
 
-    // Actualizar el valor en el formulario
     this.formularioRegistro.get('especialidades')?.setValue(selectedValues);
   }
 
-  /**
-   * Método para manejar checkboxes - Alterna especialidades seleccionadas
-   * @param event - Evento del checkbox
-   */
   toggleEspecialidad(event: Event): void {
     const checkbox = event.target as HTMLInputElement;
     const valor = checkbox.value;
 
     if (checkbox.checked) {
-      // Agregar especialidad si se marca el checkbox
       this.especialidadesSeleccionadas.push(valor);
     } else {
-      // Quitar especialidad si se desmarca el checkbox
       this.especialidadesSeleccionadas = this.especialidadesSeleccionadas.filter(item => item !== valor);
     }
 
-    // Actualizar el formulario con las especialidades seleccionadas
     this.formularioRegistro.get('especialidades')?.setValue(this.especialidadesSeleccionadas);
   }
 }

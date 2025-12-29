@@ -28,6 +28,23 @@
   color: #6b7280;
   font-size: 16px;
 }
+.btn-logout {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f07605, #fa5204);
+  color: rgb(8, 8, 8);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}
 
 .header-actions {
   display: flex;
@@ -63,7 +80,7 @@
 }
 .btn-dashboard {
   padding: 12px 20px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #ea6671, #a24b4b);
   color: white;
   border: none;
   border-radius: 10px;
@@ -261,6 +278,7 @@
   line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

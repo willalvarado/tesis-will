@@ -7,7 +7,7 @@
     </div>
     <div class="header-actions">
       <button class="btn-dashboard" (click)="irADashboard()">
-        📊 Dashboard
+        ← Atras
       </button>
       <button class="btn-refresh" (click)="cargarProyectos()" [disabled]="cargando">
         🔄 Actualizar
@@ -15,6 +15,9 @@
       <button class="btn-nuevo" routerLink="/cliente/chat-asistente">
         ➕ Crear Proyecto
       </button>
+      <button class="btn-standard btn-logout" (click)="cerrarSesion()">
+        🔚 Salir
+  </button>
     </div>
   </div>
 

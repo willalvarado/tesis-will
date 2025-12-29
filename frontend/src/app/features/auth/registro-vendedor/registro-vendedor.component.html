@@ -44,7 +44,8 @@
         <label class="field-label">Especialidades</label>
         <button 
           type="button" 
-          class="btn-especialidades" 
+          class="btn-especialidades"
+          (click)="guardarDatosTemporales()"
           [routerLink]="['/registro-especialidades']"
         >
           <div class="btn-icon-wrapper">

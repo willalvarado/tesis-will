@@ -6,9 +6,6 @@
     </div>
     
     <nav class="menu">
-      <a href="#/cliente/bienvenida" class="nav-link active">
-        <span>🏠</span> Dashboard
-      </a>
       <a href="#/cliente/chat-asistente" class="nav-link">
         <span>💬</span> Chat Asistente
       </a>
@@ -88,65 +85,57 @@
         </div>
       </div>
 
-      <!-- 📋 RESUMEN POR ESTADOS -->
+      <!-- 📋 RESUMEN DE SUB-TAREAS -->
       <div *ngIf="!loading" class="resumen-estados">
-        <h3>📋 Resumen de Proyectos por Estado</h3>
+        <h3>📋 Resumen de Sub-tareas</h3>
         
         <div class="estados-grid">
-          <!-- En Análisis -->
-          <div class="estado-item estado-analisis">
-            <div class="estado-icon">🔍</div>
+          <!-- Pendientes -->
+          <div class="estado-item estado-pendiente">
+            <div class="estado-icon">⏳</div>
             <div class="estado-info">
-              <span class="estado-nombre">En Análisis</span>
-              <span class="estado-cantidad">{{ estadisticas.en_analisis }}</span>
+              <span class="estado-nombre">Pendientes</span>
+              <span class="estado-cantidad">{{ estadisticas.subtareas_pendientes }}</span>
             </div>
           </div>
 
-          <!-- Publicados -->
-          <div class="estado-item estado-publicado">
-            <div class="estado-icon">📢</div>
+          <!-- Asignadas -->
+          <div class="estado-item estado-asignado">
+            <div class="estado-icon">👤</div>
             <div class="estado-info">
-              <span class="estado-nombre">Publicados</span>
-              <span class="estado-cantidad">{{ estadisticas.publicados }}</span>
+              <span class="estado-nombre">Asignadas</span>
+              <span class="estado-cantidad">{{ estadisticas.subtareas_asignadas }}</span>
             </div>
           </div>
 
-          <!-- En Proceso -->
+          <!-- En Progreso -->
           <div class="estado-item estado-proceso">
             <div class="estado-icon">🔄</div>
             <div class="estado-info">
-              <span class="estado-nombre">En Proceso</span>
-              <span class="estado-cantidad">{{ estadisticas.en_progreso }}</span>
+              <span class="estado-nombre">En Progreso</span>
+              <span class="estado-cantidad">{{ estadisticas.subtareas_en_progreso }}</span>
             </div>
           </div>
 
-          <!-- Completados -->
+          <!-- Completadas -->
           <div class="estado-item estado-completado">
             <div class="estado-icon">✅</div>
             <div class="estado-info">
-              <span class="estado-nombre">Completados</span>
-              <span class="estado-cantidad">{{ estadisticas.completados }}</span>
-            </div>
-          </div>
-
-          <!-- Cancelados -->
-          <div class="estado-item estado-cancelado">
-            <div class="estado-icon">❌</div>
-            <div class="estado-info">
-              <span class="estado-nombre">Cancelados</span>
-              <span class="estado-cantidad">{{ estadisticas.cancelados }}</span>
+              <span class="estado-nombre">Completadas</span>
+              <span class="estado-cantidad">{{ estadisticas.subtareas_completadas }}</span>
             </div>
           </div>
         </div>
 
         <!-- Total -->
         <div class="total-proyectos">
-          <span>Total de Proyectos:</span>
-          <strong>{{ getTotalProyectos() }}</strong>
+          <span>Total de Sub-tareas:</span>
+          <strong>{{ estadisticas.total_subtareas }}</strong>
         </div>
       </div>
 
     </section>
+    <!-- 🔥 ESTA LÍNEA FALTABA -->
 
   </main>
 </div>

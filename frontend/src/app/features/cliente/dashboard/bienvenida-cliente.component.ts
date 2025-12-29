@@ -20,13 +20,24 @@ interface Proyecto {
   subtareas_completadas: number;
 }
 
+interface SubTarea {
+  id: number;
+  proyecto_id: number;
+  estado: string;
+  presupuesto: number;
+  vendedor_id: number | null;
+}
+
 interface EstadisticasCliente {
-  en_analisis: number;
-  publicados: number;
   en_progreso: number;
   completados: number;
-  cancelados: number;
   total_invertido: number;
+  // 🔥 NUEVO: Estadísticas de sub-tareas
+  subtareas_pendientes: number;
+  subtareas_asignadas: number;
+  subtareas_en_progreso: number;
+  subtareas_completadas: number;
+  total_subtareas: number;
 }
 
 @Component({
@@ -41,16 +52,19 @@ export class BienvenidaClienteComponent implements OnInit {
   
   // Datos reales
   misProyectos: Proyecto[] = [];
+  todasSubtareas: SubTarea[] = [];
   loading = false;
   
   // Estadísticas
   estadisticas: EstadisticasCliente = {
-    en_analisis: 0,
-    publicados: 0,
     en_progreso: 0,
     completados: 0,
-    cancelados: 0,
-    total_invertido: 0
+    total_invertido: 0,
+    subtareas_pendientes: 0,
+    subtareas_asignadas: 0,
+    subtareas_en_progreso: 0,
+    subtareas_completadas: 0,
+    total_subtareas: 0
   };
 
   activeSection = 'dashboard';
@@ -84,62 +98,106 @@ export class BienvenidaClienteComponent implements OnInit {
 
     this.loading = true;
     
-    // 🔥 ENDPOINT: Obtener todos los proyectos del cliente
     this.http.get<any>(`${this.apiUrl}/proyectos/cliente/${this.cliente.id}`)
       .subscribe({
         next: (response) => {
           console.log('✅ Proyectos del cliente:', response);
-          this.misProyectos = response.proyectos || [];
-          this.calcularEstadisticas();
-          this.loading = false;
+          
+          if (Array.isArray(response)) {
+            this.misProyectos = response;
+          } else {
+            this.misProyectos = response.proyectos || [];
+          }
+          
+          console.log('📋 Total proyectos cargados:', this.misProyectos.length);
+          
+          // 🔥 Cargar sub-tareas de todos los proyectos
+          this.cargarSubtareas();
         },
         error: (err) => {
           console.error('❌ Error al cargar proyectos:', err);
           this.loading = false;
-          this.estadisticas = {
-            en_analisis: 0,
-            publicados: 0,
-            en_progreso: 0,
-            completados: 0,
-            cancelados: 0,
-            total_invertido: 0
-          };
         }
       });
   }
 
+  // 🔥 NUEVO: Cargar todas las sub-tareas del cliente
+  cargarSubtareas(): void {
+    const idsProyectos = this.misProyectos.map(p => p.id);
+    
+    if (idsProyectos.length === 0) {
+      this.calcularEstadisticas();
+      this.loading = false;
+      return;
+    }
+
+    // Cargar sub-tareas de cada proyecto
+    const peticiones = idsProyectos.map(id => 
+      this.http.get<any>(`${this.apiUrl}/subtareas/proyecto/${id}`)
+    );
+
+    // Esperar a que todas las peticiones terminen
+    Promise.all(peticiones.map(p => p.toPromise()))
+      .then(responses => {
+        this.todasSubtareas = [];
+        
+        responses.forEach(response => {
+          if (response && response.subtareas) {
+            this.todasSubtareas.push(...response.subtareas);
+          }
+        });
+
+        console.log('📋 Total sub-tareas cargadas:', this.todasSubtareas.length);
+        this.calcularEstadisticas();
+        this.loading = false;
+      })
+      .catch(err => {
+        console.error('❌ Error al cargar sub-tareas:', err);
+        this.calcularEstadisticas();
+        this.loading = false;
+      });
+  }
+
   calcularEstadisticas(): void {
-    // Contar por fase
-    this.estadisticas.en_analisis = this.misProyectos.filter(
-      p => p.fase === 'ANALISIS'
-    ).length;
-
-    this.estadisticas.publicados = this.misProyectos.filter(
-      p => p.fase === 'PUBLICADO'
-    ).length;
-
+    console.log('🔍 Calculando estadísticas...');
+    
+    // Estadísticas de proyectos
     this.estadisticas.en_progreso = this.misProyectos.filter(
-      p => p.fase === 'EN_PROGRESO'
+      p => p.fase === 'EN_PROGRESO' || p.fase === 'PUBLICADO'
     ).length;
 
     this.estadisticas.completados = this.misProyectos.filter(
       p => p.fase === 'COMPLETADO'
     ).length;
 
-    this.estadisticas.cancelados = this.misProyectos.filter(
-      p => p.fase === 'CANCELADO'
-    ).length;
-
-    // Total invertido (presupuesto de proyectos completados)
     this.estadisticas.total_invertido = this.misProyectos
       .filter(p => p.fase === 'COMPLETADO')
       .reduce((sum, p) => sum + (p.presupuesto || 0), 0);
+
+    // 🔥 NUEVO: Estadísticas de sub-tareas
+    this.estadisticas.subtareas_pendientes = this.todasSubtareas.filter(
+      st => st.estado === 'PENDIENTE'
+    ).length;
+
+    this.estadisticas.subtareas_asignadas = this.todasSubtareas.filter(
+      st => st.estado === 'ASIGNADA'
+    ).length;
+
+    this.estadisticas.subtareas_en_progreso = this.todasSubtareas.filter(
+      st => st.estado === 'EN_PROGRESO'
+    ).length;
+
+    this.estadisticas.subtareas_completadas = this.todasSubtareas.filter(
+      st => st.estado === 'COMPLETADO'
+    ).length;
+
+    this.estadisticas.total_subtareas = this.todasSubtareas.length;
 
     console.log('📊 Estadísticas calculadas:', this.estadisticas);
   }
 
   contarProyectosActivos(): number {
-    return this.estadisticas.publicados + this.estadisticas.en_progreso;
+    return this.estadisticas.en_progreso;
   }
 
   contarProyectosCompletados(): number {
@@ -147,10 +205,7 @@ export class BienvenidaClienteComponent implements OnInit {
   }
 
   getTotalProyectos(): number {
-    return this.estadisticas.en_analisis + 
-           this.estadisticas.publicados + 
-           this.estadisticas.en_progreso + 
-           this.estadisticas.completados;
+    return this.estadisticas.en_progreso + this.estadisticas.completados;
   }
 
   obtenerIniciales(): string {

@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 
@@ -9,12 +9,8 @@ import { Router } from '@angular/router';
   templateUrl: './registro-vendedor-paso2.component.html',
   styleUrls: ['./registro-vendedor-paso2.component.css']
 })
-export class RegistroVendedorPaso2Component {
+export class RegistroVendedorPaso2Component implements OnInit {
   
-  /**
-   * Array de categorías internacionales (CPC) para especialidades TI
-   * Cada categoría contiene un título y una lista de opciones específicas
-   */
   categorias = [
     {
       titulo: "Consultoría en TI",
@@ -50,56 +46,38 @@ export class RegistroVendedorPaso2Component {
     }
   ];
 
-  /**
-   * Array que almacena los códigos de las especialidades seleccionadas por el usuario
-   */
   especialidadesSeleccionadas: string[] = [];
 
-  /**
-   * Constructor - Inicializa el componente
-   * @param router - Servicio de navegación de Angular
-   */
   constructor(private router: Router) {}
 
-  /**
-   * Método para alternar la selección de una especialidad
-   * Añade o quita una especialidad de la lista de seleccionadas
-   * @param codigo - Código CPC de la especialidad a alternar
-   */
+  // 🔥 NUEVO: Recuperar especialidades ya seleccionadas al cargar
+  ngOnInit(): void {
+    const guardadas = localStorage.getItem('especialidadesSeleccionadas');
+    if (guardadas) {
+      this.especialidadesSeleccionadas = JSON.parse(guardadas);
+    }
+  }
+
   toggleSeleccion(codigo: string) {
-    // Verificar si la especialidad ya está seleccionada
     const yaSeleccionada = this.especialidadesSeleccionadas.includes(codigo);
     
     if (yaSeleccionada) {
-      // Si ya está seleccionada, la removemos de la lista
       this.especialidadesSeleccionadas = this.especialidadesSeleccionadas.filter(c => c !== codigo);
     } else {
-      // Si no está seleccionada, la agregamos a la lista
       this.especialidadesSeleccionadas.push(codigo);
     }
 
-    // Obtener los nombres completos de las especialidades seleccionadas
-    // para mostrar en el formulario principal
     const seleccionados = this.categorias
-      .flatMap(cat => cat.opciones)  // Aplanar todas las opciones de todas las categorías
-      .filter(e => this.especialidadesSeleccionadas.includes(e.codigo))  // Filtrar solo las seleccionadas
-      .map(e => e.nombre);  // Extraer solo los nombres
+      .flatMap(cat => cat.opciones)
+      .filter(e => this.especialidadesSeleccionadas.includes(e.codigo))
+      .map(e => e.nombre);
 
-    // Guardar tanto los nombres como los códigos en localStorage
-    // para que estén disponibles cuando el usuario regrese al formulario principal
     localStorage.setItem('especialidadesNombres', JSON.stringify(seleccionados));
     localStorage.setItem('especialidadesSeleccionadas', JSON.stringify(this.especialidadesSeleccionadas));
   }
 
-  /**
-   * Método para finalizar la selección y regresar al formulario principal
-   * Guarda las selecciones en localStorage y navega de vuelta
-   */
   finalizarRegistro() {
-    // Guardar las especialidades seleccionadas en localStorage
     localStorage.setItem('especialidadesSeleccionadas', JSON.stringify(this.especialidadesSeleccionadas));
-    
-    // Navegar de vuelta al formulario principal de registro de vendedor
     this.router.navigate(['/registro-vendedor']);
   }
 }
