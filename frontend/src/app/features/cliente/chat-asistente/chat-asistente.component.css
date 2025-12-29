@@ -545,3 +545,20 @@
 .assistant-info {
   flex: 1;
 }
+.btn-logout {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f07605, #fa5204);
+  color: rgb(8, 8, 8);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}

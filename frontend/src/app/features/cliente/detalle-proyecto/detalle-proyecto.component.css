@@ -5,6 +5,41 @@
   background: #f5f7fa;
   min-height: 100vh;
 }
+.btn-logout {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f07605, #fa5204);
+  color: rgb(8, 8, 8);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.btn-logout:hover {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-color: #dc2626;
+  transform: translateY(-2px);
+}
+.btn-dashboard {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f07605, #cdfa04);
+  color: rgb(8, 8, 8);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.btn-dashboard:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
+
 
 /* ========================================
    HEADER
@@ -18,23 +53,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.btn-volver {
-  background: transparent;
-  border: none;
-  color: #667eea;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 10px 20px;
-  transition: all 0.3s;
-  font-weight: 600;
-  border-radius: 10px;
-}
-
-.btn-volver:hover {
-  background: #f8f9fa;
-  color: #764ba2;
+  gap: 20px;
 }
 
 .proyecto-header h2 {
@@ -43,6 +62,11 @@
   font-size: 1.8rem;
   flex: 1;
   text-align: center;
+}
+
+.proyecto-header .buttons-container {
+  display: flex;
+  gap: 12px;
 }
 
 /* ========================================
@@ -131,7 +155,7 @@
 }
 
 /* ========================================
-   STATS GRID - MEJORADO
+   STATS GRID
    ======================================== */
 .stats-grid {
   display: grid;
@@ -375,7 +399,7 @@
 }
 
 /* ========================================
-   BOTÓN VER CONVERSACIÓN - MEJORADO
+   BOTÓN VER CONVERSACIÓN
    ======================================== */
 .subtarea-actions {
   margin-top: 20px;
@@ -440,38 +464,18 @@
   .subtareas-section {
     padding: 20px;
   }
-  /* ========================================
-   HEADER CON 3 ELEMENTOS
-   ======================================== */
-.proyecto-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 20px;
-}
 
-.proyecto-header h2 {
-  flex: 1;
-  text-align: center;
-}
+  .proyecto-header {
+    flex-direction: column;
+    gap: 12px;
+  }
 
-.btn-dashboard {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  white-space: nowrap;
-}
+  .proyecto-header h2 {
+    font-size: 1.4rem;
+  }
 
-
-.btn-dashboard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
+  .proyecto-header .buttons-container {
+    width: 100%;
+    justify-content: center;
+  }
 }

@@ -147,4 +147,11 @@ export class DetalleProyectoComponent implements OnInit {
   irADashboard(): void {
   this.router.navigate(['/cliente/bienvenida']);
 }
+cerrarSesion(): void {
+  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('token');
+    this.router.navigate(['/login']);
+  }
+  }
 }

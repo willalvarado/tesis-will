@@ -4,6 +4,23 @@
   display: flex;
   flex-direction: column;
 }
+.btn-dashboard {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #f07605, #cdfa04);
+  color: rgb(8, 8, 8);
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 15px;
+}
+
+.btn-dashboard:hover {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
+}
 
 /* ===== HEADER ===== */
 .page-header {
@@ -683,21 +700,5 @@
   .chat-input {
     padding: 16px;
   }
-  .btn-dashboard {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  white-space: nowrap;
-}
-
-.btn-dashboard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-}
+ 
 }
