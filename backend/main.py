@@ -13,6 +13,7 @@ from routers.chat_router import router as chat_router  # ✅ AGREGAR ESTA LÍNEA
 from routers.archivo_router import router as archivo_router
 from routers.chat_analisis_router import router as chat_analisis_router
 from routers.subtarea_router import router as subtarea_router
+from routers.solicitud_router import router as solicitud_router
 
 # Crear instancia de FastAPI
 app = FastAPI(
@@ -44,6 +45,7 @@ app.include_router(archivo_router)
 app.include_router(chat_router)  # ✅ AGREGAR ESTA LÍNEA
 app.include_router(chat_analisis_router)
 app.include_router(subtarea_router)
+app.include_router(solicitud_router)
 
 # Ruta de prueba
 @app.get("/")

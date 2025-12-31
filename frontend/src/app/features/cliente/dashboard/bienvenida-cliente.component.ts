@@ -32,12 +32,12 @@ interface EstadisticasCliente {
   en_progreso: number;
   completados: number;
   total_invertido: number;
-  // 🔥 NUEVO: Estadísticas de sub-tareas
   subtareas_pendientes: number;
   subtareas_asignadas: number;
   subtareas_en_progreso: number;
   subtareas_completadas: number;
   total_subtareas: number;
+  solicitudes_pendientes: number; // 🔥 NUEVO
 }
 
 @Component({
@@ -50,12 +50,10 @@ interface EstadisticasCliente {
 export class BienvenidaClienteComponent implements OnInit {
   cliente: Usuario | null = null;
   
-  // Datos reales
   misProyectos: Proyecto[] = [];
   todasSubtareas: SubTarea[] = [];
   loading = false;
   
-  // Estadísticas
   estadisticas: EstadisticasCliente = {
     en_progreso: 0,
     completados: 0,
@@ -64,7 +62,8 @@ export class BienvenidaClienteComponent implements OnInit {
     subtareas_asignadas: 0,
     subtareas_en_progreso: 0,
     subtareas_completadas: 0,
-    total_subtareas: 0
+    total_subtareas: 0,
+    solicitudes_pendientes: 0 // 🔥 NUEVO
   };
 
   activeSection = 'dashboard';
@@ -111,7 +110,6 @@ export class BienvenidaClienteComponent implements OnInit {
           
           console.log('📋 Total proyectos cargados:', this.misProyectos.length);
           
-          // 🔥 Cargar sub-tareas de todos los proyectos
           this.cargarSubtareas();
         },
         error: (err) => {
@@ -121,22 +119,20 @@ export class BienvenidaClienteComponent implements OnInit {
       });
   }
 
-  // 🔥 NUEVO: Cargar todas las sub-tareas del cliente
   cargarSubtareas(): void {
     const idsProyectos = this.misProyectos.map(p => p.id);
     
     if (idsProyectos.length === 0) {
       this.calcularEstadisticas();
+      this.cargarSolicitudes(); // 🔥 NUEVO
       this.loading = false;
       return;
     }
 
-    // Cargar sub-tareas de cada proyecto
     const peticiones = idsProyectos.map(id => 
       this.http.get<any>(`${this.apiUrl}/subtareas/proyecto/${id}`)
     );
 
-    // Esperar a que todas las peticiones terminen
     Promise.all(peticiones.map(p => p.toPromise()))
       .then(responses => {
         this.todasSubtareas = [];
@@ -149,19 +145,49 @@ export class BienvenidaClienteComponent implements OnInit {
 
         console.log('📋 Total sub-tareas cargadas:', this.todasSubtareas.length);
         this.calcularEstadisticas();
+        this.cargarSolicitudes(); // 🔥 NUEVO
         this.loading = false;
       })
       .catch(err => {
         console.error('❌ Error al cargar sub-tareas:', err);
         this.calcularEstadisticas();
+        this.cargarSolicitudes(); // 🔥 NUEVO
         this.loading = false;
+      });
+  }
+
+  // 🔥 NUEVO: Cargar contador de solicitudes pendientes
+  cargarSolicitudes(): void {
+    const idsProyectos = this.misProyectos.map(p => p.id);
+    
+    if (idsProyectos.length === 0) return;
+
+    const peticiones = idsProyectos.map(id => 
+      this.http.get<any>(`${this.apiUrl}/solicitudes/proyecto/${id}`)
+    );
+
+    Promise.all(peticiones.map(p => p.toPromise()))
+      .then(responses => {
+        let totalSolicitudes = 0;
+        
+        responses.forEach(solicitudes => {
+          if (Array.isArray(solicitudes)) {
+            totalSolicitudes += solicitudes.length;
+          }
+        });
+
+        this.estadisticas.solicitudes_pendientes = totalSolicitudes;
+        console.log('📬 Solicitudes pendientes:', totalSolicitudes);
+      })
+      .catch(err => {
+        console.error('❌ Error al cargar solicitudes:', err);
+        this.estadisticas.solicitudes_pendientes = 0;
       });
   }
 
   calcularEstadisticas(): void {
     console.log('🔍 Calculando estadísticas...');
     
-    // Estadísticas de proyectos
     this.estadisticas.en_progreso = this.misProyectos.filter(
       p => p.fase === 'EN_PROGRESO' || p.fase === 'PUBLICADO'
     ).length;
@@ -174,9 +200,8 @@ export class BienvenidaClienteComponent implements OnInit {
       .filter(p => p.fase === 'COMPLETADO')
       .reduce((sum, p) => sum + (p.presupuesto || 0), 0);
 
-    // 🔥 NUEVO: Estadísticas de sub-tareas
     this.estadisticas.subtareas_pendientes = this.todasSubtareas.filter(
-      st => st.estado === 'PENDIENTE'
+      st => st.estado === 'PENDIENTE' || st.estado === 'SOLICITADA'
     ).length;
 
     this.estadisticas.subtareas_asignadas = this.todasSubtareas.filter(
@@ -216,6 +241,11 @@ export class BienvenidaClienteComponent implements OnInit {
       .map(palabra => palabra.charAt(0).toUpperCase())
       .join('')
       .substring(0, 2);
+  }
+
+  // 🔥 NUEVO: Navegar a solicitudes
+  irASolicitudes(): void {
+    this.router.navigate(['/cliente/solicitudes']);
   }
 
   cerrarSesion(): void {

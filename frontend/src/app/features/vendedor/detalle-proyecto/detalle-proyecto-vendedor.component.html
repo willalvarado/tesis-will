@@ -1,13 +1,21 @@
 <div class="detalle-container">
+  <!-- 🔥 HEADER MEJORADO CON 3 ELEMENTOS -->
   <div class="header">
-  <button class="btn-back" (click)="volverAtras()">
-    ← Atrás
-  </button>
-  <h2 class="page-title">Detalle del Proyecto</h2>
-  <button class="btn-dashboard" (click)="irADashboard()">
-    📊 Dashboard
-  </button>
-</div>
+    <button class="btn-standard btn-back" (click)="volverAtras()">
+      ← Atrás
+    </button>
+    
+    <h2 class="page-title">Detalle del Proyecto</h2>
+    
+    <div class="header-buttons">
+      <button class="btn-standard btn-dashboard" (click)="irADashboard()">
+        📊 Dashboard
+      </button>
+       <!--<button class="btn-standard btn-logout" (click)="cerrarSesion()">
+        🚪 Salir
+      </button>-->
+    </div>
+  </div>
 
   <!-- Loading -->
   <div *ngIf="cargando" class="loading">

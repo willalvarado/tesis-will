@@ -48,6 +48,12 @@ export const routes: Routes = [
     data: { tipoUsuario: 'cliente' }
   },
   { 
+    path: 'cliente/solicitudes', 
+    loadComponent: () => import('./features/cliente/solicitudes/solicitudes.component').then(m => m.SolicitudesComponent),
+    canActivate: [authGuard],
+    data: { tipoUsuario: 'cliente' }
+  },
+  { 
     path: 'cliente/ayuda', 
     loadComponent: () => import('./features/cliente/ayuda/ayuda.component').then(m => m.AyudaComponent),
     canActivate: [authGuard],
@@ -125,7 +131,7 @@ export const routes: Routes = [
   },
 
   // ========================================
-  // Dashboard genérico (opcional - puede ser protegido o público)
+  // Dashboard genérico
   // ========================================
   { 
     path: 'dashboard', 

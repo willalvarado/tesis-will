@@ -1,0 +1,111 @@
+<div class="solicitudes-container">
+  <!-- Header -->
+  <div class="header">
+    <button class="btn-standard btn-back" (click)="irADashboard()">
+      ← Atrás
+    </button>
+    
+    <h2 class="page-title">📬 Solicitudes Recibidas</h2>
+    
+    <button class="btn-standard btn-logout" (click)="cerrarSesion()">
+      🚪 Salir
+    </button>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="cargando" class="loading-state">
+    <div class="spinner"></div>
+    <p>Cargando solicitudes...</p>
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error" class="error-message">
+    ❌ {{ error }}
+  </div>
+
+  <!-- Lista de proyectos con solicitudes -->
+  <div *ngIf="!cargando && !error" class="proyectos-list">
+    
+    <!-- Empty state -->
+    <div *ngIf="proyectosConSolicitudes.length === 0" class="empty-state">
+      <div class="empty-icon">📭</div>
+      <h3>No tienes solicitudes pendientes</h3>
+      <p>Cuando los vendedores soliciten tus sub-tareas, aparecerán aquí.</p>
+      <button class="btn-standard btn-primary" routerLink="/cliente/requerimientos">
+        📋 Ver Mis Proyectos
+      </button>
+    </div>
+
+    <!-- Proyectos con solicitudes -->
+    <div *ngFor="let proyectoConSol of proyectosConSolicitudes" class="proyecto-card">
+      
+      <!-- Header del proyecto -->
+      <div class="proyecto-header" (click)="toggleProyecto(proyectoConSol)">
+        <div class="proyecto-info">
+          <h3>{{ proyectoConSol.proyecto.titulo }}</h3>
+          <p class="proyecto-meta">
+            {{ proyectoConSol.solicitudes.length }} solicitud{{ proyectoConSol.solicitudes.length !== 1 ? 'es' : '' }} pendiente{{ proyectoConSol.solicitudes.length !== 1 ? 's' : '' }}
+          </p>
+        </div>
+        <span class="expand-icon">{{ proyectoConSol.expandido ? '▼' : '▶' }}</span>
+      </div>
+
+      <!-- Solicitudes del proyecto -->
+      <div class="solicitudes-list" *ngIf="proyectoConSol.expandido">
+        
+        <div *ngFor="let solicitud of proyectoConSol.solicitudes" class="solicitud-card">
+          
+          <!-- Header de la solicitud -->
+          <div class="solicitud-header">
+            <div class="solicitud-info">
+              <span class="subtarea-codigo">{{ solicitud.subtarea_codigo }}</span>
+              <span class="subtarea-titulo">{{ solicitud.subtarea_titulo }}</span>
+            </div>
+            <span class="fecha-solicitud">
+              📅 {{ formatearFecha(solicitud.fecha_solicitud) }}
+            </span>
+          </div>
+
+          <!-- Info del vendedor -->
+          <div class="vendedor-info">
+            <div class="vendedor-avatar">
+              {{ solicitud.vendedor_nombre?.charAt(0) || 'V' }}
+            </div>
+            <div class="vendedor-datos">
+              <h4>{{ solicitud.vendedor_nombre }}</h4>
+              <p class="vendedor-email">📧 {{ solicitud.vendedor_email }}</p>
+            </div>
+          </div>
+
+          <!-- Mensaje del vendedor -->
+          <div class="mensaje-vendedor" *ngIf="solicitud.mensaje">
+            <div class="mensaje-label">💬 Mensaje del vendedor:</div>
+            <div class="mensaje-texto">{{ solicitud.mensaje }}</div>
+          </div>
+
+          <div class="mensaje-vendedor sin-mensaje" *ngIf="!solicitud.mensaje">
+            <div class="mensaje-texto">El vendedor no agregó un mensaje</div>
+          </div>
+
+          <!-- Acciones -->
+          <div class="solicitud-acciones">
+            <button 
+              class="btn-aceptar" 
+              (click)="aceptarSolicitud(solicitud, $event)">
+              ✅ Aceptar Solicitud
+            </button>
+            <button 
+              class="btn-rechazar" 
+              (click)="rechazarSolicitud(solicitud, $event)">
+              ❌ Rechazar
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+</div>

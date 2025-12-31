@@ -12,6 +12,10 @@
       <a href="#/cliente/requerimientos" class="nav-link">
         <span>📝</span> Mis Proyectos
       </a>
+      <!-- 🔥 NUEVO: Link a Solicitudes -->
+      <a href="#/cliente/solicitudes" class="nav-link">
+        <span>📬</span> Solicitudes
+      </a>
       <a href="#/cliente/mi-perfil" class="nav-link">
         <span>👤</span> Mi Perfil
       </a>
@@ -82,6 +86,15 @@
               <h2>${{ estadisticas.total_invertido.toFixed(2) }}</h2>
             </div>
           </div>
+
+          <!-- 🔥 NUEVO: Solicitudes Pendientes -->
+          <div class="stat-card stat-solicitudes" (click)="irASolicitudes()">
+            <div class="stat-icon">📬</div>
+            <div class="stat-info">
+              <p>Solicitudes Pendientes</p>
+              <h2>{{ estadisticas.solicitudes_pendientes || 0 }}</h2>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -135,7 +148,6 @@
       </div>
 
     </section>
-    <!-- 🔥 ESTA LÍNEA FALTABA -->
 
   </main>
 </div>

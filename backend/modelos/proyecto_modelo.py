@@ -22,8 +22,9 @@ class FaseProyecto(str, enum.Enum):
 
 # 🆕 Enum para los estados de las sub-tareas
 class EstadoSubTarea(str, enum.Enum):
-    PENDIENTE = "PENDIENTE"
-    ASIGNADA = "ASIGNADA"
+    PENDIENTE = "PENDIENTE"           # Sin solicitudes
+    SOLICITADA = "SOLICITADA"         # 🔥 NUEVO: Al menos 1 solicitud pendiente
+    ASIGNADA = "ASIGNADA"             # Cliente aceptó una solicitud
     EN_PROGRESO = "EN_PROGRESO"
     EN_REVISION = "EN_REVISION"
     COMPLETADO = "COMPLETADO"

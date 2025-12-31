@@ -1528,4 +1528,17 @@ body {
     flex-direction: column;
     gap: 8px;
   }
+  .stat-solicitudes {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.stat-solicitudes:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.stat-solicitudes .stat-icon {
+  font-size: 48px;
+}
 }

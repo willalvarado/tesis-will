@@ -180,4 +180,11 @@ export class DetalleProyectoVendedorComponent implements OnInit {
   irADashboard(): void {
   this.router.navigate(['/vendedor/bienvenida']);
 }
+cerrarSesion(): void {
+  if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+    localStorage.removeItem('usuario');
+    localStorage.removeItem('token');
+    this.router.navigate(['/login']);
+  }
+}
 }

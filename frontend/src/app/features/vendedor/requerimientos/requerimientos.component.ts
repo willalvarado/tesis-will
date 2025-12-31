@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { SubtareaService } from '../../../core/services/subtarea.service';
 import { ServicioAuth } from '../../../core/services/auth.service';
+import { SolicitudService } from '../../../core/services/solicitud.service';
 
 interface ProyectoConSubtareas {
   proyecto_id: number;
@@ -37,13 +38,19 @@ interface SubtareaDisponible {
     <div class="requerimientos-container">
       <!-- Barra de navegación superior -->
       <div class="top-navigation">
-        <button class="btn-back" (click)="volverAtras()">
+        <button class="btn-standard btn-back" (click)="volverAtras()">
           ← Atrás
         </button>
         <h2 class="page-title">Oportunidades Disponibles</h2>
-        <button class="btn-proyectos" (click)="irAProyectos()">
-          📂 Mis Proyectos
-        </button>
+        
+        <div class="nav-buttons">
+          <button class="btn-standard btn-dashboard" (click)="irAProyectos()">
+            📂 Mis Proyectos
+          </button>
+          <button class="btn-standard btn-logout" (click)="cerrarSesion()">
+            🚪 Salir
+          </button>
+        </div>
       </div>
 
       <!-- Header con estadísticas -->
@@ -126,14 +133,23 @@ interface SubtareaDisponible {
                     </div>
                   </div>
 
-                  <!-- 🔥 BOTÓN CONDICIONAL -->
+                  <!-- 🔥 SI NO HA SOLICITADO -->
                   <button 
-                    *ngIf="puedeAceptarSubtarea(subtarea)"
-                    class="btn-aceptar" 
-                    (click)="aceptarSubtarea(subtarea.id)">
-                    ✅ Aceptar Sub-tarea
+                    *ngIf="puedeAceptarSubtarea(subtarea) && !yaSolicito(subtarea.id)"
+                    class="btn-solicitar" 
+                    (click)="enviarSolicitud(subtarea.id)">
+                    📤 Enviar Solicitud
                   </button>
 
+                  <!-- 🔥 SI YA SOLICITÓ -->
+                  <button 
+                    *ngIf="puedeAceptarSubtarea(subtarea) && yaSolicito(subtarea.id)"
+                    class="btn-ya-solicitado" 
+                    disabled>
+                    ⏳ Solicitud Enviada
+                  </button>
+
+                  <!-- SI NO ES SU ESPECIALIDAD -->
                   <button 
                     *ngIf="!puedeAceptarSubtarea(subtarea)"
                     class="btn-no-disponible" 
@@ -196,29 +212,9 @@ interface SubtareaDisponible {
       color: #2c3e50;
     }
 
-    .btn-back, .btn-proyectos {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-      font-size: 14px;
-    }
-
-    .btn-back {
-      background: linear-gradient(135deg, #6c757d, #5a6268);
-      color: white;
-    }
-
-    .btn-proyectos {
-      background: linear-gradient(135deg, #ff6b35, #f7931e);
-      color: white;
-    }
-
-    .btn-back:hover, .btn-proyectos:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    .nav-buttons {
+      display: flex;
+      gap: 12px;
     }
 
     .header {
@@ -446,10 +442,11 @@ interface SubtareaDisponible {
       font-size: 16px;
     }
 
-    .btn-aceptar {
+    /* BOTÓN ENVIAR SOLICITUD */
+    .btn-solicitar {
       width: 100%;
       padding: 12px;
-      background: linear-gradient(135deg, #28a745, #20c997);
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
       color: white;
       border: none;
       border-radius: 8px;
@@ -459,12 +456,25 @@ interface SubtareaDisponible {
       transition: all 0.2s;
     }
 
-    .btn-aceptar:hover {
+    .btn-solicitar:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(40, 167, 69, 0.3);
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.3);
     }
 
-    /* 🔥 NUEVO ESTILO PARA BOTÓN DESHABILITADO */
+    /* 🔥 BOTÓN YA SOLICITADO */
+    .btn-ya-solicitado {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: not-allowed;
+      opacity: 0.8;
+    }
+
     .btn-no-disponible {
       width: 100%;
       padding: 12px;
@@ -529,6 +539,16 @@ interface SubtareaDisponible {
         padding-top: 70px;
       }
 
+      .top-navigation {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .nav-buttons {
+        width: 100%;
+        justify-content: center;
+      }
+
       .header {
         flex-direction: column;
       }
@@ -552,84 +572,66 @@ export class RequerimientoComponent implements OnInit {
   cargando: boolean = true;
   especialidadesVendedor: string[] = [];
   totalSubtareasDisponibles: number = 0;
+  subtareasSolicitadas: number[] = []; // 🔥 NUEVO: IDs de sub-tareas ya solicitadas
 
   constructor(
     private subtareaService: SubtareaService,
-    private router: Router
-    
-    , private authService: ServicioAuth
+    private solicitudService: SolicitudService,
+    private router: Router,
+    private authService: ServicioAuth
   ) {}
 
   ngOnInit(): void {
-  this.obtenerEspecialidadVendedor();
-  // 🔥 NO llamar aquí, llamar al final de obtenerEspecialidadVendedor()
-}
-
-obtenerEspecialidadVendedor(): void {
-  let usuario = localStorage.getItem('usuario');
-  
-  // 🔥 FALLBACK: Si localStorage está vacío, intentar obtener del servicio
-  if (!usuario) {
-    console.warn('⚠️ localStorage vacío, intentando obtener del AuthService...');
-    const usuarioActual = this.authService?.obtenerUsuarioActual();
-    if (usuarioActual) {
-      usuario = JSON.stringify(usuarioActual);
-      localStorage.setItem('usuario', usuario); // Guardarlo para próximas veces
-    } else {
-      console.error('❌ No hay usuario en localStorage ni en AuthService');
-      this.cargando = false;
-      return;
-    }
+    this.obtenerEspecialidadVendedor();
   }
-  
-  const vendedor = JSON.parse(usuario);
-  
-  console.log('🔍 Usuario completo:', vendedor);
-  console.log('🔍 Especialidades raw:', vendedor.especialidades);
-  console.log('🔍 Tipo:', typeof vendedor.especialidades);
-  
-  // 🔥 Guardar TODAS las especialidades
-  if (Array.isArray(vendedor.especialidades)) {
-    this.especialidadesVendedor = vendedor.especialidades;
-  } else if (typeof vendedor.especialidades === 'string') {
-    try {
-      // Si viene como JSON string
-      const parsed = JSON.parse(vendedor.especialidades);
-      this.especialidadesVendedor = Array.isArray(parsed) ? parsed : [vendedor.especialidades];
-    } catch {
-      // Si viene como string con comas
-      this.especialidadesVendedor = vendedor.especialidades.split(',').map((e: string) => e.trim());
-    }
-  }
-  
-  console.log('✅ Especialidades cargadas:', this.especialidadesVendedor);
-  
-  // 🔥 AHORA SÍ cargar sub-tareas
-  this.cargarSubtareasDisponibles();
-}
 
-  // 🔥 NUEVO MÉTODO: Verifica si puede aceptar la sub-tarea
+  obtenerEspecialidadVendedor(): void {
+    let usuario = localStorage.getItem('usuario');
+    
+    if (!usuario) {
+      console.warn('⚠️ localStorage vacío, intentando obtener del AuthService...');
+      const usuarioActual = this.authService?.obtenerUsuarioActual();
+      if (usuarioActual) {
+        usuario = JSON.stringify(usuarioActual);
+        localStorage.setItem('usuario', usuario);
+      } else {
+        console.error('❌ No hay usuario en localStorage ni en AuthService');
+        this.cargando = false;
+        return;
+      }
+    }
+    
+    const vendedor = JSON.parse(usuario);
+    
+    if (Array.isArray(vendedor.especialidades)) {
+      this.especialidadesVendedor = vendedor.especialidades;
+    } else if (typeof vendedor.especialidades === 'string') {
+      try {
+        const parsed = JSON.parse(vendedor.especialidades);
+        this.especialidadesVendedor = Array.isArray(parsed) ? parsed : [vendedor.especialidades];
+      } catch {
+        this.especialidadesVendedor = vendedor.especialidades.split(',').map((e: string) => e.trim());
+      }
+    }
+    
+    console.log('✅ Especialidades cargadas:', this.especialidadesVendedor);
+    this.cargarSubtareasDisponibles();
+  }
+
   puedeAceptarSubtarea(subtarea: SubtareaDisponible): boolean {
-  // Convertir especialidades del vendedor a códigos
-  const especialidadesVendedorCodigos = this.especialidadesVendedor.map(esp => 
-    this.convertirEspecialidadACodigo(esp)
-  );
-  
-  // 🔥 TAMBIÉN convertir la especialidad de la sub-tarea a código
-  const especialidadSubtareaCodigo = this.convertirEspecialidadACodigo(subtarea.especialidad);
-  
-  // Verificar si hacen match
-  const puedeAceptar = especialidadesVendedorCodigos.includes(especialidadSubtareaCodigo);
-  
-  console.log(`🔍 ¿Puede aceptar "${subtarea.codigo}"?`, puedeAceptar);
-  console.log(`   Especialidad sub-tarea (original): ${subtarea.especialidad}`);
-  console.log(`   Especialidad sub-tarea (código): ${especialidadSubtareaCodigo}`);
-  console.log(`   Especialidades vendedor (códigos): ${especialidadesVendedorCodigos.join(', ')}`);
-  
-  return puedeAceptar;
-}
+    const especialidadesVendedorCodigos = this.especialidadesVendedor.map(esp => 
+      this.convertirEspecialidadACodigo(esp)
+    );
+    
+    const especialidadSubtareaCodigo = this.convertirEspecialidadACodigo(subtarea.especialidad);
+    return especialidadesVendedorCodigos.includes(especialidadSubtareaCodigo);
+  }
 
-  // 🔥 HELPER: Convierte nombres a códigos
+  // 🔥 NUEVO: Verifica si ya solicitó esta sub-tarea
+  yaSolicito(subtareaId: number): boolean {
+    return this.subtareasSolicitadas.includes(subtareaId);
+  }
+
   private convertirEspecialidadACodigo(especialidad: string): string {
     const mapeo: { [key: string]: string } = {
       "Consultoría en desarrollo de sistemas": "CONSULTORIA_DESARROLLO",
@@ -649,45 +651,34 @@ obtenerEspecialidadVendedor(): void {
     return mapeo[especialidad] || especialidad;
   }
 
- cargarSubtareasDisponibles(): void {
-  // 🔥 VALIDACIÓN: Si no hay especialidades, obtenerlas primero
-  if (!this.especialidadesVendedor || this.especialidadesVendedor.length === 0) {
-    console.warn('⚠️ Especialidades vacías, recargando usuario...');
-    this.obtenerEspecialidadVendedor();
-    return;
-  }
-
-  this.cargando = true;
-  
-  // 🔥 CONVERTIR A CÓDIGOS antes de enviar
-  const especialidadesCodigos = this.especialidadesVendedor.map(esp => 
-    this.convertirEspecialidadACodigo(esp)
-  );
-  const especialidadesStr = especialidadesCodigos.join(',');
-  
-  console.log('🔍 Especialidades del vendedor (nombres):', this.especialidadesVendedor);
-  console.log('🔍 Especialidades convertidas (códigos):', especialidadesCodigos);
-  console.log('🔍 String enviado al backend:', especialidadesStr);
-  
-  this.subtareaService.obtenerSubtareasDisponibles(especialidadesStr).subscribe({
-    next: (response) => {
-      console.log('✅ Respuesta del servidor:', response);
-      console.log('📊 Sub-tareas recibidas:', response.subtareas);
-      console.log('📊 Total:', response.total);
-      
-      this.subtareasDisponibles = response.subtareas || [];
-      this.totalSubtareasDisponibles = response.total || 0;
-      
-      this.agruparPorProyecto();
-      
-      this.cargando = false;
-    },
-    error: (error) => {
-      console.error('❌ Error al cargar sub-tareas:', error);
-      this.cargando = false;
+  cargarSubtareasDisponibles(): void {
+    if (!this.especialidadesVendedor || this.especialidadesVendedor.length === 0) {
+      console.warn('⚠️ Especialidades vacías, recargando usuario...');
+      this.obtenerEspecialidadVendedor();
+      return;
     }
-  });
-}
+
+    this.cargando = true;
+    
+    const especialidadesCodigos = this.especialidadesVendedor.map(esp => 
+      this.convertirEspecialidadACodigo(esp)
+    );
+    const especialidadesStr = especialidadesCodigos.join(',');
+    
+    this.subtareaService.obtenerSubtareasDisponibles(especialidadesStr).subscribe({
+      next: (response) => {
+        this.subtareasDisponibles = response.subtareas || [];
+        this.totalSubtareasDisponibles = response.total || 0;
+        
+        this.agruparPorProyecto();
+        this.cargando = false;
+      },
+      error: (error) => {
+        console.error('❌ Error al cargar sub-tareas:', error);
+        this.cargando = false;
+      }
+    });
+  }
 
   agruparPorProyecto(): void {
     const proyectosMap = new Map<number, ProyectoConSubtareas>();
@@ -708,7 +699,6 @@ obtenerEspecialidadVendedor(): void {
     });
     
     this.proyectosAgrupados = Array.from(proyectosMap.values());
-    console.log('📊 Proyectos agrupados:', this.proyectosAgrupados);
   }
 
   toggleProyecto(proyectoId: number): void {
@@ -718,49 +708,54 @@ obtenerEspecialidadVendedor(): void {
     }
   }
 
-  aceptarSubtarea(subtareaId: number): void {
-  const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
-  
-  if (!subtarea) {
-    alert('❌ Sub-tarea no encontrada');
-    return;
-  }
-
-  if (!this.puedeAceptarSubtarea(subtarea)) {
-    alert('❌ No tienes la especialidad requerida para esta sub-tarea');
-    return;
-  }
-
-  const confirmacion = confirm(
-    `¿Deseas aceptar esta sub-tarea?\n\n` +
-    `📋 ${subtarea.titulo}\n` +
-    `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
-    `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
-    `Una vez aceptada, aparecerá en "Mis Proyectos"`
-  );
-
-  if (!confirmacion) return;
-
-  const vendedorId = this.obtenerVendedorId();
-  if (!vendedorId) {
-    alert('❌ Error: No se pudo obtener tu ID de vendedor');
-    return;
-  }
-
-  this.subtareaService.aceptarSubtarea(subtareaId, vendedorId).subscribe({
-    next: (response) => {
-      console.log('✅ Sub-tarea aceptada:', response);
-      alert(`✅ ¡Sub-tarea "${subtarea.titulo}" aceptada exitosamente!\n\nAhora aparecerá en "Mis Proyectos"`);
-      
-      // 🔥 SOLUCIÓN: Recargar desde obtenerEspecialidadVendedor para asegurar que las especialidades estén cargadas
-      this.obtenerEspecialidadVendedor();
-    },
-    error: (error) => {
-      console.error('❌ Error al aceptar sub-tarea:', error);
-      alert('❌ Error al aceptar la sub-tarea. Intenta nuevamente.');
+  enviarSolicitud(subtareaId: number): void {
+    const subtarea = this.subtareasDisponibles.find(s => s.id === subtareaId);
+    
+    if (!subtarea) {
+      alert('❌ Sub-tarea no encontrada');
+      return;
     }
-  });
-}
+
+    if (!this.puedeAceptarSubtarea(subtarea)) {
+      alert('❌ No tienes la especialidad requerida para esta sub-tarea');
+      return;
+    }
+
+    const mensaje = prompt(
+      `Enviar solicitud para:\n\n` +
+      `📋 ${subtarea.titulo}\n` +
+      `⏱️ Estimación: ${subtarea.estimacion_horas}h\n` +
+      `🔴 Prioridad: ${subtarea.prioridad}\n\n` +
+      `Escribe un mensaje para el cliente (opcional):`
+    );
+
+    if (mensaje === null) return;
+
+    const vendedorId = this.obtenerVendedorId();
+    if (!vendedorId) {
+      alert('❌ Error: No se pudo obtener tu ID de vendedor');
+      return;
+    }
+
+    this.solicitudService.enviarSolicitud({
+      subtarea_id: subtareaId,
+      vendedor_id: vendedorId,
+      mensaje: mensaje || undefined
+    }).subscribe({
+      next: (response) => {
+        console.log('✅ Solicitud enviada:', response);
+        alert(`✅ ¡Solicitud enviada exitosamente!\n\nEl cliente recibirá tu solicitud.`);
+        
+        // 🔥 AGREGAR a la lista de solicitadas
+        this.subtareasSolicitadas.push(subtareaId);
+      },
+      error: (error) => {
+        console.error('❌ Error al enviar solicitud:', error);
+        const mensaje = error.error?.detail || 'Error al enviar la solicitud. Intenta nuevamente.';
+        alert(`❌ ${mensaje}`);
+      }
+    });
+  }
 
   volverAtras(): void {
     this.router.navigate(['/vendedor/bienvenida']);
@@ -793,6 +788,14 @@ obtenerEspecialidadVendedor(): void {
     if (usuario) {
       return JSON.parse(usuario).id;
     }
-    return 2; // Fallback
+    return null;
+  }
+  
+  cerrarSesion(): void {
+    if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+      localStorage.removeItem('usuario');
+      localStorage.removeItem('token');
+      this.router.navigate(['/login']);
+    }
   }
 }
